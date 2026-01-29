@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Drill Details &amp; Execution</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#1c2e22",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-background-light dark:bg-background-dark text-gray-900 dark:text-white overflow-x-hidden antialiased selection:bg-primary selection:text-background-dark">
+<div class="relative flex h-full min-h-screen w-full flex-col">
+<!-- Top App Bar -->
+<div class="sticky top-0 z-20 flex items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md p-4 pb-2 justify-between border-b border-gray-200 dark:border-white/5">
+<button class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-gray-900 dark:text-white" style="font-size: 24px;">arrow_back</span>
+</button>
+<h2 class="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Putting Essentials</h2>
+<button class="flex w-10 items-center justify-end">
+<span class="material-symbols-outlined text-gray-900 dark:text-white" style="font-size: 24px;">help_outline</span>
+</button>
+</div>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col px-4 pt-4 pb-48 w-full max-w-md mx-auto">
+<!-- Media Player -->
+<div class="relative w-full rounded-2xl overflow-hidden shadow-lg mb-6 group">
+<div class="relative flex items-center justify-center bg-gray-200 dark:bg-surface-dark bg-cover bg-center aspect-video" data-alt="Golfer demonstrating proper putting stance and gate drill execution on a green" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDIWsAWxVFVqgVuR-wCh0IYR4-2qHEnlFSkrr5ereCvRCaY3qQ93UwweuePmYV937CSYoX5NeZg-vEd0xfnfpu473DjPfqthGsTfAPOecATVgC3fMSa3a60kS54GVr2InYy058M13gY7A5yC8C09Fv5bmuGVEnxTjBdtICY3-_0R3oQMC6jWqMp2L0Vbrlnr6hijBPYabB2vWli9UcB-CUCcnz_ColoGxEwksKHQiOi9vXKiyOBHoUVIV4761yBsFYMTRXuZ4y7bvM");'>
+<!-- Dark Overlay for better text/icon visibility -->
+<div class="absolute inset-0 bg-black/20"></div>
+<button class="relative flex shrink-0 items-center justify-center rounded-full size-16 bg-primary/90 text-background-dark backdrop-blur-sm shadow-xl hover:scale-105 transition-transform">
+<span class="material-symbols-outlined fill-1" style="font-size: 32px; font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<!-- Duration Badge -->
+<div class="absolute bottom-3 right-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-lg">
+<span class="text-xs font-medium text-white">05:00</span>
+</div>
+</div>
+</div>
+<!-- Header & Meta Data -->
+<div class="flex flex-col gap-4 mb-6">
+<h1 class="text-3xl font-bold leading-tight tracking-tight text-gray-900 dark:text-white">The Gate Drill</h1>
+<div class="flex flex-wrap gap-2">
+<div class="flex h-8 items-center justify-center gap-x-2 rounded-full bg-gray-200 dark:bg-surface-dark border border-gray-300 dark:border-white/10 px-4">
+<span class="material-symbols-outlined text-primary" style="font-size: 16px;">equalizer</span>
+<p class="text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">Intermediate</p>
+</div>
+<div class="flex h-8 items-center justify-center gap-x-2 rounded-full bg-gray-200 dark:bg-surface-dark border border-gray-300 dark:border-white/10 px-4">
+<span class="material-symbols-outlined text-primary" style="font-size: 16px;">timer</span>
+<p class="text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">5 mins</p>
+</div>
+<div class="flex h-8 items-center justify-center gap-x-2 rounded-full bg-gray-200 dark:bg-surface-dark border border-gray-300 dark:border-white/10 px-4">
+<span class="material-symbols-outlined text-primary" style="font-size: 16px;">sports_golf</span>
+<p class="text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">Putter</p>
+</div>
+</div>
+<p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    Improve your face control at impact by forcing the putter through a tight gate. This drill provides instant feedback on off-center strikes.
+                </p>
+</div>
+<!-- Instructions Accordion -->
+<div class="flex flex-col gap-3">
+<h3 class="text-sm font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider mb-1">Step-by-Step</h3>
+<details class="flex flex-col rounded-2xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/5 overflow-hidden group" open="">
+<summary class="flex cursor-pointer items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors list-none select-none">
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center size-8 rounded-full bg-primary/20 text-primary-dark dark:text-primary font-bold text-sm shrink-0">1</div>
+<p class="font-semibold text-gray-900 dark:text-white text-base">Setup the Gate</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-4 pb-4 pl-[4.5rem]">
+<p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                            Place two tees into the ground, just wider than your putter head, to create a narrow gate for your stroke. Leave about 1/4 inch of clearance on each side.
+                        </p>
+</div>
+</details>
+<details class="flex flex-col rounded-2xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/5 overflow-hidden group">
+<summary class="flex cursor-pointer items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors list-none select-none">
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center size-8 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 font-bold text-sm shrink-0">2</div>
+<p class="font-semibold text-gray-900 dark:text-white text-base">Ball Position</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-4 pb-4 pl-[4.5rem]">
+<p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                            Place the ball directly in the center of the gate. Ensure your eyes are directly over the ball for optimal alignment.
+                        </p>
+</div>
+</details>
+<details class="flex flex-col rounded-2xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/5 overflow-hidden group">
+<summary class="flex cursor-pointer items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors list-none select-none">
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center size-8 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 font-bold text-sm shrink-0">3</div>
+<p class="font-semibold text-gray-900 dark:text-white text-base">Stroke Execution</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 group-open:rotate-180 transition-transform">expand_more</span>
+</summary>
+<div class="px-4 pb-4 pl-[4.5rem]">
+<p class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                            Make your stroke. If you hit a tee, your face angle was either open or closed. Reset and try to pass through cleanly.
+                        </p>
+</div>
+</details>
+</div>
+</main>
+<!-- Execution Area / Sticky Footer -->
+<div class="fixed bottom-0 left-0 right-0 z-30">
+<!-- Gradient Fade for Content -->
+<div class="h-8 bg-gradient-to-t from-background-light dark:from-background-dark to-transparent pointer-events-none"></div>
+<div class="bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/10 px-6 py-6 pb-8 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)]">
+<div class="max-w-md mx-auto">
+<!-- Progress Header -->
+<div class="flex items-center justify-between mb-4">
+<div class="flex flex-col">
+<span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Goal</span>
+<span class="text-lg font-bold text-gray-900 dark:text-white">10 Reps</span>
+</div>
+<div class="h-2 w-24 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
+<div class="h-full w-[0%] bg-primary"></div>
+</div>
+</div>
+<!-- Controls Grid -->
+<div class="grid grid-cols-[auto_1fr] gap-4">
+<!-- Rep Counter -->
+<div class="flex items-center bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/5 rounded-full p-1.5 shadow-sm">
+<button class="size-12 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/10 active:scale-95 transition-all">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<span class="w-12 text-center font-bold text-xl text-gray-900 dark:text-white font-mono">0</span>
+<button class="size-12 flex items-center justify-center rounded-full bg-primary text-background-dark hover:brightness-110 active:scale-95 transition-all shadow-[0_0_15px_rgba(19,236,91,0.3)]">
+<span class="material-symbols-outlined font-bold">add</span>
+</button>
+</div>
+<!-- Primary CTA -->
+<button class="flex items-center justify-center gap-3 h-[62px] bg-primary text-background-dark font-bold text-lg rounded-full hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(19,236,91,0.2)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">videocam</span>
+<span>Record Swing</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

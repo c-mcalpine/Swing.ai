@@ -1,0 +1,9 @@
+/* Main app container styles */
+.App {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Common styles that will be used across screens */
+/* These will be populated as we convert the HTML designs */
+

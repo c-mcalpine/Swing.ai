@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Golf Challenge Arena</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#13ec5b",
+              "background-light": "#f6f8f6",
+              "background-dark": "#102216",
+              "surface-dark": "#1c2e24",
+              "surface-light": "#e8ebe9",
+            },
+            fontFamily: {
+              "display": ["Lexend", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Hide scrollbar for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-nav {
+            background: rgba(16, 34, 22, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-gray-900 dark:text-white font-display antialiased selection:bg-primary selection:text-black">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24">
+<!-- Header -->
+<header class="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md pt-safe-top">
+<div class="flex items-center justify-between p-4 pb-2">
+<div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-light dark:bg-surface-dark text-primary">
+<span class="material-symbols-outlined text-[24px]">trophy</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight text-center flex-1">Arena</h2>
+<div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-light dark:bg-surface-dark text-gray-400">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+</div>
+</div>
+<!-- Segmented Control -->
+<div class="px-4 py-2">
+<div class="flex h-12 w-full items-center justify-center rounded-full bg-surface-light dark:bg-[#1a2c20] p-1">
+<label class="flex cursor-pointer h-full flex-1 items-center justify-center rounded-full has-[:checked]:bg-primary has-[:checked]:text-black has-[:checked]:shadow-sm transition-all duration-200">
+<span class="text-sm font-semibold">Leaderboards</span>
+<input checked="" class="invisible w-0 h-0 absolute" name="view-toggle" type="radio" value="Leaderboards"/>
+</label>
+<label class="flex cursor-pointer h-full flex-1 items-center justify-center rounded-full text-gray-500 dark:text-[#9db9a6] hover:text-gray-900 dark:hover:text-white has-[:checked]:bg-primary has-[:checked]:text-black transition-all duration-200">
+<span class="text-sm font-semibold">Events</span>
+<input class="invisible w-0 h-0 absolute" name="view-toggle" type="radio" value="Events"/>
+</label>
+</div>
+</div>
+<!-- Filter Chips -->
+<div class="flex gap-3 px-4 py-3 overflow-x-auto no-scrollbar border-b border-gray-200 dark:border-[#28392e]">
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-black dark:bg-white text-white dark:text-black px-5 shadow-lg shadow-primary/20">
+<span class="text-sm font-medium">Global</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-[#28392e] text-gray-600 dark:text-[#9db9a6] px-5 hover:bg-gray-200 dark:hover:bg-[#344a3b] transition-colors">
+<span class="text-sm font-medium">Friends</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-light dark:bg-[#28392e] text-gray-600 dark:text-[#9db9a6] px-5 hover:bg-gray-200 dark:hover:bg-[#344a3b] transition-colors">
+<span class="text-sm font-medium">Club</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col w-full max-w-md mx-auto">
+<!-- Podium Section -->
+<div class="pt-8 pb-6 px-4 relative">
+<!-- Background Glow -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-primary/10 blur-[60px] rounded-full pointer-events-none"></div>
+<div class="flex justify-center items-end gap-3 sm:gap-6">
+<!-- 2nd Place -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer w-24">
+<div class="relative">
+<div class="w-20 h-20 bg-gray-200 dark:bg-[#28392e] rounded-full p-1 ring-2 ring-gray-300 dark:ring-[#4a6352]">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Portrait of golfer ranked second" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD0cdRMt3lN1JyitU7ZIVOrkGAL4tPbUh45lFqR160Zbaq9U0sSWePjzfPoEAgYzj8HusX2iIx6E39MBPOY9uG41t22b57QhJMeYv4LBoV-9VrwHOq-JMYFsEuNRtUOhlfn0BVNU10GohQPVnL8uqeUlZSHJyQLxZ-AkWzCwgowVWuvRbCJMEh3-v9Xdwp66eTB9qfSU_6oxeaC5uKnZ8evmjHAauSN1Sjlmwn7XifgtXZV_bZSROsZdy-0bdZ2HzLghmPiQ_sI9ZM');"></div>
+</div>
+<div class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-surface-light dark:bg-[#28392e] text-gray-900 dark:text-white text-xs font-bold px-2 py-0.5 rounded-full border border-gray-200 dark:border-[#4a6352] shadow-sm">
+                                #2
+                            </div>
+</div>
+<div class="text-center mt-1">
+<p class="text-sm font-semibold truncate w-full">Rory M.</p>
+<p class="text-primary text-xs font-medium">2,450 pts</p>
+</div>
+</div>
+<!-- 1st Place -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer w-28 -mt-6 z-10">
+<div class="relative">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 text-[#FFD700] animate-bounce">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">crown</span>
+</div>
+<div class="w-24 h-24 bg-primary/20 rounded-full p-1 ring-4 ring-primary shadow-[0_0_20px_rgba(19,236,91,0.4)]">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Portrait of golfer ranked first" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDKHOnkFyMJp_cfro6A4RPhcbYuFN3WpuA2pJpfjVzIgJqstTwTFLUuzLaW6XEWgg_VDg2eWSbKA6piYtIpUWigUku-ItiFSTaeQ3QrUhvwGDLdsT9i26gb5Xg_RRA8by_g9jEYf4HiPYGhAeATZJOayZuERE91t5peMXdQpSpVDxuXDPV9N2uqnFsjCsRzL4rQ1YAGAM9fcOmVh5-5T53C86bpu702N0_srj_X-Y-hZX1leOyLNLAZ5ohDizgbRHPZanFPwRbkVPI');"></div>
+</div>
+<div class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-primary text-black text-sm font-extrabold px-3 py-0.5 rounded-full shadow-md">
+                                #1
+                            </div>
+</div>
+<div class="text-center mt-2">
+<p class="text-base font-bold truncate w-full">Tiger W.</p>
+<p class="text-primary text-sm font-bold">2,500 pts</p>
+</div>
+</div>
+<!-- 3rd Place -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer w-24">
+<div class="relative">
+<div class="w-20 h-20 bg-gray-200 dark:bg-[#28392e] rounded-full p-1 ring-2 ring-[#CD7F32]/50 dark:ring-[#CD7F32]">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Portrait of golfer ranked third" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDazdMoeaKpbD2UlWnzQ_MBsE6ikWVh3087RzIOaLIJlWEB4wKPTtPPfHRd48aTS1sI8YmVukImjQcngtBRYwbsnbmciweEb6KzrmTYIFHppo2vMn8OpuyY6MJKC6lWgNYFLx2Wwcn9GFOWgG-syfOS-LoPiq_Pjynz_KImdl1FhgKwu1xjUJOMnEATVLM4UkJxlA__owKZcjSozF85gsrA_8rcvA55OMDjP3llvjN4QRbfFa83K9Spjs1pfCJnZHRoAGdxSERZnlA');"></div>
+</div>
+<div class="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-surface-light dark:bg-[#28392e] text-gray-900 dark:text-white text-xs font-bold px-2 py-0.5 rounded-full border border-gray-200 dark:border-[#4a6352] shadow-sm">
+                                #3
+                            </div>
+</div>
+<div class="text-center mt-1">
+<p class="text-sm font-semibold truncate w-full">Scottie S.</p>
+<p class="text-primary text-xs font-medium">2,300 pts</p>
+</div>
+</div>
+</div>
+</div>
+<!-- List Header -->
+<div class="px-6 py-2 flex justify-between text-xs font-medium text-gray-500 dark:text-[#9db9a6] uppercase tracking-wider">
+<span>Golfer</span>
+<span>Score</span>
+</div>
+<!-- Ranking List -->
+<div class="flex flex-col px-4 gap-3">
+<!-- Rank 4 -->
+<div class="group flex items-center gap-4 bg-white dark:bg-[#1a2c20] p-3 rounded-2xl shadow-sm border border-transparent hover:border-primary/30 transition-all">
+<span class="w-6 text-center text-gray-500 dark:text-gray-400 font-bold text-sm">4</span>
+<div class="h-10 w-10 shrink-0 rounded-full bg-cover bg-center bg-gray-200" data-alt="Golfer portrait Jordan S" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB-d2SfVzEid9CQeMpWKgvXImcEWXJrF2mPV4bKT8-omZcC6vnpNaXc2nw61esGAHZqbQU3R9ZQwB298IOm7Vb1CtOxiPecySVaCyYZCV0EGDR89rQALteyGsqRQnYwA-KPXpwsqsz3iXv6OU01t5yAWTE1cG8SLWRLqC6tlOyeqdDRrHAFqclwupUBmoZ-oWdPGbqFFSaYaJi_LMYbfGF4jcGY4qdcG43Zd2Tm4lBrW9APtGTtZj8NCzT43QlVVMSoPwVm7W6Et0M');"></div>
+<div class="flex-1">
+<p class="text-sm font-semibold text-gray-900 dark:text-white">Jordan S.</p>
+<p class="text-xs text-gray-500 dark:text-[#9db9a6]">Handicap +2</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-gray-900 dark:text-white">2,100</p>
+<span class="text-[10px] text-green-500 flex items-center justify-end">
+<span class="material-symbols-outlined text-[12px] mr-0.5">arrow_upward</span> 12
+                        </span>
+</div>
+</div>
+<!-- Rank 5 -->
+<div class="group flex items-center gap-4 bg-white dark:bg-[#1a2c20] p-3 rounded-2xl shadow-sm border border-transparent hover:border-primary/30 transition-all">
+<span class="w-6 text-center text-gray-500 dark:text-gray-400 font-bold text-sm">5</span>
+<div class="h-10 w-10 shrink-0 rounded-full bg-cover bg-center bg-gray-200" data-alt="Golfer portrait Jon R" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBOlIbPzRfrbRJFgvtplyU5uJQ37g9bF-pT38Azv1paZ4mRAcTfVs8bv_2mWAhnpWQ2Il7ziLs8RcUU9E60kouF9BfliJuOX6V0xyI2M-zHexNVePlWI_638Ek6SdA-yljRzOhtzL8WiOj-EhqI439Z9NPkmt6155YvslxtKtui--2DtqIO7F_-XkSNxrhQhHHfZ66zM-UVdWYUkzvfwFnvsyUgsJPsrQawX96dhpwCDYGnIh7v7iMsdWT2Tse6pQBs-Zvb0KU44mE');"></div>
+<div class="flex-1">
+<p class="text-sm font-semibold text-gray-900 dark:text-white">Jon R.</p>
+<p class="text-xs text-gray-500 dark:text-[#9db9a6]">Handicap +1</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-gray-900 dark:text-white">2,050</p>
+<span class="text-[10px] text-red-400 flex items-center justify-end">
+<span class="material-symbols-outlined text-[12px] mr-0.5">arrow_downward</span> 5
+                        </span>
+</div>
+</div>
+<!-- Rank 6 -->
+<div class="group flex items-center gap-4 bg-white dark:bg-[#1a2c20] p-3 rounded-2xl shadow-sm border border-transparent hover:border-primary/30 transition-all">
+<span class="w-6 text-center text-gray-500 dark:text-gray-400 font-bold text-sm">6</span>
+<div class="h-10 w-10 shrink-0 rounded-full bg-cover bg-center bg-gray-200" data-alt="Golfer portrait Viktor H" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDpUFWSvgoSSDgvMks4e3F0H_9XuxukJASiPNSUIzGE6Nw7U8Qe6wBoWLesrBOvCgs6LWYJxik8AGGs0Dk1G4QyhRgCfWdTwzHCZQ6FPsDeTCB3YHkOzunOVw9UVGy84hc_HKYCTp2aoKprlrDgAJhEBcI8bWnl9Cqn6325GsnEA_c8yE_ck4bX7Fciyc2KJ-uPB3qDsUyFQHcJ0zV2kw7Zqtp_NfypXY66MsdZKjC-dH4DDnRxE85pKc4CZiaMvPVIg0A6j0dEhcI');"></div>
+<div class="flex-1">
+<p class="text-sm font-semibold text-gray-900 dark:text-white">Viktor H.</p>
+<p class="text-xs text-gray-500 dark:text-[#9db9a6]">Handicap 0</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-gray-900 dark:text-white">1,980</p>
+<span class="text-[10px] text-gray-500 flex items-center justify-end">
+                            -
+                        </span>
+</div>
+</div>
+<!-- Rank 7 -->
+<div class="group flex items-center gap-4 bg-white dark:bg-[#1a2c20] p-3 rounded-2xl shadow-sm border border-transparent hover:border-primary/30 transition-all opacity-70">
+<span class="w-6 text-center text-gray-500 dark:text-gray-400 font-bold text-sm">7</span>
+<div class="h-10 w-10 shrink-0 rounded-full bg-cover bg-center bg-gray-200" data-alt="Golfer portrait Collin M" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD1EcPQkUeh93RFYFNW-xvgn9QgbDLBAQytF457R6bhcXh5ft3IOqrRzgY7qFwhfrPO_7UTzkaMOs4wwFUmIs0WKAOPa2ZOKJ1wHU8HqxuxjpGFkG6fZrlcTtDlnHNfR3SqPa0lGeZbO5etZHofNDIDl2Z4u7J-Di8v2oA_y2Xsb9Kw_TXfa0lZ68hBygiuYSxK0NlJQeC_csyx-L0IRCqBI-V9A13ZD9jzXH4Su9GaaoemQh3kirIyNZ9NH7Vk5PxzL-EX2uabjLA');"></div>
+<div class="flex-1">
+<p class="text-sm font-semibold text-gray-900 dark:text-white">Collin M.</p>
+<p class="text-xs text-gray-500 dark:text-[#9db9a6]">Handicap +1</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-gray-900 dark:text-white">1,920</p>
+</div>
+</div>
+<!-- Spacer for sticky footer -->
+<div class="h-24"></div>
+</div>
+</main>
+<!-- Sticky "My Rank" -->
+<div class="fixed bottom-[88px] left-0 right-0 px-4 z-20">
+<div class="bg-surface-dark dark:bg-[#111813] border border-primary/20 p-3 rounded-2xl shadow-xl flex items-center gap-4 relative overflow-hidden max-w-md mx-auto">
+<!-- Highlight line -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<span class="w-6 text-center text-primary font-bold text-sm ml-2">24</span>
+<div class="h-10 w-10 shrink-0 rounded-full bg-cover bg-center bg-gray-200 ring-2 ring-primary/50" data-alt="User profile picture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjr4X4aa36C8aVjQ7N0ehU-xiKzXmsOKXDkqJHtrb8YMyU3LElu4InwFzcPrMhY_88Xf9T1n3F7Y9U1OC_peByBfS0hADjMBG--00w_Hg82b_WBMs5OxNwnPC2UQ_z_G3GuxQpIBUZs7gVvbUz5-QayaSfcWB8wMCWhfueNJXveXHeixePaSU5EGC2OuL70f3sl_qs31bOABXZ2-HtXOuTK4ZyOcHjRcuwu96reW23e2ZnBTdjhviqqgknFr-uOMP_aXUCO9b1ki8');"></div>
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<p class="text-sm font-bold text-white">You</p>
+<span class="px-1.5 py-0.5 rounded-md bg-primary/20 text-primary text-[10px] font-bold uppercase">Pro</span>
+</div>
+<p class="text-xs text-[#9db9a6]">Top 15%</p>
+</div>
+<div class="text-right">
+<p class="text-sm font-bold text-white">1,240</p>
+<p class="text-[10px] text-[#9db9a6]">pts</p>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 w-full z-30 glass-nav border-t border-white/5 pb-5 pt-3">
+<div class="flex items-center justify-around px-2 max-w-md mx-auto">
+<button class="flex flex-col items-center gap-1 p-2 text-gray-500 dark:text-gray-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 p-2 text-gray-500 dark:text-gray-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[24px]">videocam</span>
+<span class="text-[10px] font-medium">Review</span>
+</button>
+<button class="flex flex-col items-center gap-1 p-2 text-primary relative">
+<!-- Active indicator glow -->
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-8 bg-primary/20 blur-xl rounded-full"></div>
+<span class="material-symbols-outlined text-[24px] font-bold filled">trophy</span>
+<span class="text-[10px] font-bold">Challenge</span>
+</button>
+<button class="flex flex-col items-center gap-1 p-2 text-gray-500 dark:text-gray-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[24px]">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</div>
+</nav>
+</div>
+</body></html>

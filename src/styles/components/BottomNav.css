@@ -1,0 +1,127 @@
+/* Bottom Navigation Component */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(21, 31, 24, 0.95);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  z-index: 50;
+}
+
+.bottom-nav__container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 72px;
+  padding: 0 8px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Regular Nav Button */
+.bottom-nav__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  padding: 8px;
+}
+
+.bottom-nav__btn:hover {
+  color: #d1d5db;
+}
+
+.bottom-nav__btn .material-symbols-outlined {
+  font-size: 26px;
+  transition: transform 0.2s ease;
+}
+
+.bottom-nav__btn:hover .material-symbols-outlined {
+  transform: scale(1.1);
+}
+
+.bottom-nav__btn--active {
+  color: #13ec5b;
+}
+
+.bottom-nav__btn--active:hover {
+  color: #13ec5b;
+}
+
+.bottom-nav__label {
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Floating Action Button (FAB) */
+.bottom-nav__fab-wrapper {
+  margin-top: -32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav__fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #13ec5b, #4eff88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px rgba(19, 236, 91, 0.4);
+  border: 4px solid #102216;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  color: black;
+}
+
+.bottom-nav__fab:hover {
+  transform: scale(1.05);
+}
+
+.bottom-nav__fab:active {
+  transform: scale(0.95);
+}
+
+.bottom-nav__fab .material-symbols-outlined {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+/* Safe area support for devices with notches */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bottom-nav__container {
+    padding-bottom: calc(env(safe-area-inset-bottom) / 2);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .bottom-nav__container {
+    padding: 0 4px;
+  }
+  
+  .bottom-nav__btn {
+    padding: 4px;
+  }
+}
+
+@media (min-width: 769px) {
+  .bottom-nav__container {
+    max-width: 768px;
+  }
+}
+

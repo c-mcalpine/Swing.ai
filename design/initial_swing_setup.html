@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Initial Swing Setup</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;family=Noto+Sans:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark text-white font-display antialiased overflow-hidden selection:bg-primary selection:text-black">
+<div class="relative h-screen w-full flex flex-col">
+<!-- Simulated Camera Feed Background -->
+<div class="absolute inset-0 z-0 w-full h-full bg-cover bg-center" data-alt="First person view of a golf driving range with green grass and trees in the distance" style="background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.6)), url('https://lh3.googleusercontent.com/aida-public/AB6AXuCs57TR4hk_CDpoqtSnP3_S1vcc3VyzmLD6iWUdDCjM8VgKoNQcF4FF-DvB3y83jf-xKL5MnmM5WU_00UptQ-xhg2nuPbnLlG8c3Fs60ACEVdti6qAlHv8QJK0FuoFShsHG_Vc_cMFoGRYUj2wFltaddGvJgge5NHmZ7cgTsBzBJ-0DFpnTahFDuwZrXIavoNH8s3oTIhtBYKyU7gfnomCGoyYZO6JoZ7phK95W2cb0Mw2Ut5CFErout6kI5ZlhODu3l7YLNMt7Ru8');">
+</div>
+<!-- AR Grid Overlay -->
+<div class="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center">
+<!-- Grid Box -->
+<div class="relative w-[85%] aspect-[3/4] max-h-[60%] border border-white/20 rounded-3xl">
+<!-- Corner Indicators -->
+<div class="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary -mt-0.5 -ml-0.5 rounded-tl-2xl shadow-[0_0_10px_rgba(19,236,91,0.6)]"></div>
+<div class="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary -mt-0.5 -mr-0.5 rounded-tr-2xl shadow-[0_0_10px_rgba(19,236,91,0.6)]"></div>
+<div class="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary -mb-0.5 -ml-0.5 rounded-bl-2xl shadow-[0_0_10px_rgba(19,236,91,0.6)]"></div>
+<div class="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary -mb-0.5 -mr-0.5 rounded-br-2xl shadow-[0_0_10px_rgba(19,236,91,0.6)]"></div>
+<!-- Center Guide -->
+<div class="absolute inset-0 flex items-center justify-center opacity-50">
+<div class="h-full w-px bg-white/30 dashed"></div>
+<div class="absolute w-full h-px bg-white/30 dashed"></div>
+</div>
+<!-- Live Feedback Pill -->
+<div class="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+<span class="text-xs font-bold tracking-wide uppercase text-white">Phone Level</span>
+</div>
+</div>
+<!-- Headline Text (Floating below grid) -->
+<h2 class="mt-6 text-white text-2xl font-bold tracking-tight text-center drop-shadow-md">Align yourself in the grid</h2>
+</div>
+<!-- Top Navigation Bar -->
+<div class="relative z-20 flex items-center justify-between p-4 pt-12 pb-2 bg-gradient-to-b from-black/80 to-transparent">
+<button class="flex size-12 shrink-0 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-white">arrow_back</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="text-primary text-[10px] font-bold uppercase tracking-widest mb-0.5">Setup Wizard</span>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Baseline Evaluation</h2>
+</div>
+<button class="flex size-12 shrink-0 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-white">help</span>
+</button>
+</div>
+<!-- Bottom Controls Section -->
+<div class="mt-auto relative z-20 w-full flex flex-col gap-4 pb-8 pt-12 bg-gradient-to-t from-black via-black/90 to-transparent">
+<!-- Step Indicators -->
+<div class="flex w-full flex-row items-center justify-center gap-3">
+<div class="h-1.5 w-8 rounded-full bg-primary shadow-[0_0_8px_rgba(19,236,91,0.8)]"></div>
+<div class="h-1.5 w-1.5 rounded-full bg-white/30"></div>
+<div class="h-1.5 w-1.5 rounded-full bg-white/30"></div>
+</div>
+<!-- Instruction Card Area -->
+<div class="px-4 w-full">
+<div class="flex flex-col gap-4 rounded-3xl bg-[#1c271f]/80 backdrop-blur-xl border border-white/10 p-5 shadow-2xl">
+<!-- Card Content -->
+<div class="flex items-start justify-between gap-4">
+<div class="flex flex-col gap-1 flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary text-black text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Step 1</span>
+<p class="text-white text-lg font-bold leading-tight">Position Camera</p>
+</div>
+<p class="text-[#9db9a6] text-sm font-normal leading-relaxed">Place your phone waist-high, 10ft back, facing the golfer directly.</p>
+</div>
+<div class="w-20 h-20 shrink-0 bg-center bg-no-repeat bg-cover rounded-2xl border border-white/10" data-alt="Abstract illustration showing a phone on a tripod facing a golfer" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuASvhXWs6vfib4yatHnnURWOa_NBFT0c21lYLwJ6-MzIh7vbay3HWHDo7RY4tuQ_J3v4Xdeda8vfad0XoNSaC9_zIZd1Zabn6n8VPW8Xs-1mEZCSdWEZgseK3hELLlkYqKhKQ0_M6EcoGkaUL1aqiRpneZsLpVxIFevSix6Y2xUrlVKwH_epYtnhf5ZwaWVMlAqM9ztGZF5aKc6pYLActSAcfNUS_ncePGZs1B2unjOts-0PKc2GYTdZfgKwBfgmDcjyVXTx6WcQXI");'>
+</div>
+</div>
+<!-- Divider -->
+<div class="h-px w-full bg-white/10"></div>
+<!-- Bottom Action Row: Club Selector & Record -->
+<div class="flex items-center justify-between gap-4">
+<!-- Club Selector (Chips) -->
+<div class="flex gap-2 overflow-x-auto no-scrollbar py-1">
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary pl-3 pr-4 transition-transform active:scale-95 shadow-[0_0_15px_rgba(19,236,91,0.3)]">
+<span class="material-symbols-outlined text-black text-[20px]">sports_golf</span>
+<p class="text-black text-sm font-bold leading-normal">7 Iron</p>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white/10 border border-white/10 pl-3 pr-4 hover:bg-white/20 transition-colors">
+<p class="text-white text-sm font-medium leading-normal">Driver</p>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white/10 border border-white/10 pl-3 pr-4 hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-white/70 text-[20px]">expand_more</span>
+</button>
+</div>
+<!-- Main Record Button (Mini version inside card for quick access, or floating outside) -->
+<!-- Design decision: Let's make a prominent floating button outside the chip row to emphasize action -->
+</div>
+</div>
+</div>
+<!-- Primary Action Button (Floating) -->
+<div class="flex justify-center w-full px-4 mt-2">
+<button class="group relative flex w-full max-w-sm items-center justify-center gap-3 overflow-hidden rounded-full h-14 bg-primary text-background-dark shadow-[0_0_20px_rgba(19,236,91,0.4)] transition-all hover:bg-[#34fc75] active:scale-[0.98]">
+<div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+<span class="material-symbols-outlined text-[28px] z-10">videocam</span>
+<span class="text-lg font-bold tracking-wide z-10">Start Recording</span>
+</button>
+</div>
+</div>
+</div>
+</body></html>

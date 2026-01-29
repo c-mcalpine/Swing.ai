@@ -1,0 +1,441 @@
+/* Swing Recording Screen - Camera Interface */
+
+.recording-screen {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #000;
+  font-family: 'Lexend', 'Noto Sans', sans-serif;
+}
+
+/* Camera Feed Background */
+.recording-screen__camera-feed {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), 
+    url('https://lh3.googleusercontent.com/aida-public/AB6AXuAENAjfy_lnlT_rlk7YRFNAAJRTbJuifB2k5VE-s097QbtFovF-nIK_aFgyoBz1ceZmVhvWcoz8wE9huR3ZJ2LPTL2ouazRbxwMeGZoSSE5N33-aOla9yCSIHXYy-xESyIXuELb3dqk_iUYJtQKRnM_E75PmtLyhkbbyw_2uaSTt85WEj_SbboDvDh0H0yQIjggFu8NAwr4FVou8acGAvuamk_hi_JLNOqrtvGAWNH5SUuCvJXn8hlixqmoLTAPQZtZ-0mC7b6bjXQ');
+  background-size: cover;
+  background-position: center;
+}
+
+/* Golfer Silhouette Overlay */
+.recording-screen__silhouette-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.recording-screen__silhouette {
+  height: 75%;
+  width: auto;
+  stroke: white;
+  fill: none;
+  stroke-width: 2px;
+  opacity: 0.6;
+}
+
+/* Grid Lines */
+.recording-screen__grid-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.2;
+}
+
+.recording-screen__grid-line {
+  position: absolute;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.recording-screen__grid-line--h1 {
+  width: 100%;
+  height: 33.333%;
+  border-bottom: 1px solid;
+}
+
+.recording-screen__grid-line--h2 {
+  width: 100%;
+  top: 33.333%;
+  height: 33.333%;
+  border-bottom: 1px solid;
+}
+
+.recording-screen__grid-line--v1 {
+  height: 100%;
+  width: 33.333%;
+  left: 33.333%;
+  border-right: 1px solid;
+}
+
+.recording-screen__grid-line--v2 {
+  height: 100%;
+  width: 33.333%;
+  right: 33.333%;
+  border-right: 1px solid;
+}
+
+/* UI Overlay */
+.recording-screen__ui-overlay {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  padding-bottom: 32px;
+}
+
+/* Top Bar */
+.recording-screen__top-bar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
+  padding-bottom: 32px;
+}
+
+.recording-screen__top-controls {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  justify-content: space-between;
+}
+
+.recording-screen__icon-btn {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.recording-screen__icon-btn:active {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.recording-screen__icon-btn .material-symbols-outlined {
+  font-size: 32px;
+}
+
+.recording-screen__title {
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.recording-screen__top-right {
+  display: flex;
+  width: 48px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.recording-screen__flash-btn {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s;
+}
+
+.recording-screen__flash-btn:active,
+.recording-screen__flash-btn--active {
+  background-color: #13ec5b;
+  color: black;
+}
+
+/* Instructions */
+.recording-screen__instructions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.recording-screen__instruction-pill {
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  padding: 8px 16px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.recording-screen__instruction-pill .material-symbols-outlined {
+  color: #13ec5b;
+  font-size: 16px;
+}
+
+.recording-screen__instruction-pill p {
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Center Area */
+.recording-screen__center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.recording-screen__align-text {
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.05em;
+  font-size: 24px;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  opacity: 0;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.recording-screen__align-text--recording {
+  opacity: 1;
+  color: #13ec5b;
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Bottom Controls */
+.recording-screen__bottom-controls {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: linear-gradient(to top, #102216, rgba(16, 34, 22, 0.9), transparent);
+  padding: 48px 16px 24px;
+}
+
+/* Club Section */
+.recording-screen__club-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.recording-screen__club-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px 4px;
+}
+
+.recording-screen__club-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.recording-screen__edit-bag-btn {
+  color: #13ec5b;
+  font-size: 12px;
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.recording-screen__club-chips {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.recording-screen__club-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.recording-screen__club-chip {
+  scroll-snap-align: start;
+  display: flex;
+  height: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9999px;
+  background-color: #1c271f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.recording-screen__club-chip:active {
+  transform: scale(0.95);
+}
+
+.recording-screen__club-chip--active {
+  background-color: #13ec5b;
+  box-shadow: 0 0 15px rgba(19, 236, 91, 0.3);
+  padding: 0 24px;
+  color: black;
+  font-weight: 700;
+}
+
+.recording-screen__club-chip .material-symbols-outlined {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* Camera Controls */
+.recording-screen__camera-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 8px;
+  margin-bottom: 24px;
+}
+
+.recording-screen__control-btn {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  background-color: rgba(28, 39, 31, 0.8);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.recording-screen__control-btn:active {
+  transform: scale(0.9);
+}
+
+.recording-screen__control-btn .material-symbols-outlined {
+  font-size: 24px;
+}
+
+/* Record Button */
+.recording-screen__record-btn {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  border: 4px solid white;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.recording-screen__record-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.recording-screen__record-btn:disabled {
+  cursor: not-allowed;
+}
+
+.recording-screen__record-btn-inner {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background-color: #13ec5b;
+  box-shadow: 0 0 20px rgba(19, 236, 91, 0.5);
+  transition: background-color 0.2s;
+}
+
+.recording-screen__record-btn:hover:not(:disabled) .recording-screen__record-btn-inner {
+  background-color: #3bf579;
+}
+
+.recording-screen__record-btn--recording .recording-screen__record-btn-inner {
+  background-color: #ef4444;
+  animation: recordPulse 1s ease-in-out infinite;
+}
+
+@keyframes recordPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.recording-screen__record-btn .material-symbols-outlined {
+  position: relative;
+  z-index: 10;
+  color: black;
+  font-size: 40px;
+  font-weight: 700;
+}
+
+/* Helper Text */
+.recording-screen__helper-text {
+  color: #9db9a6;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Responsive */
+@media (min-width: 640px) {
+  .recording-screen__instruction-pill p {
+    font-size: 14px;
+  }
+  
+  .recording-screen__camera-controls {
+    padding: 0 32px;
+  }
+}
+

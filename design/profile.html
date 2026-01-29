@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Profile: Progress &amp; Stats</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#1a2e22",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white pb-24">
+<!-- Top App Bar -->
+<div class="sticky top-0 z-20 flex items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md p-4 justify-between">
+<h2 class="text-xl font-bold leading-tight tracking-[-0.015em] flex-1">Profile</h2>
+<div class="flex items-center justify-end">
+<button class="flex items-center justify-center rounded-full h-10 w-10 text-slate-500 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+<!-- Profile Header -->
+<div class="flex flex-col items-center px-4 pt-2 pb-6">
+<div class="relative group">
+<div class="bg-center bg-no-repeat bg-cover rounded-full h-32 w-32 border-4 border-primary shadow-[0_0_20px_rgba(19,236,91,0.3)]" data-alt="Golfer profile picture smiling on a green course" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuACvRe5NDchvuglm9PvRxQju3P5eYHP3pquiLpLoYJXhZ6u6kmG16gWfIJG2qbXdUjl6O40V4vzp0H4EWeAWpZRnPO5YkHc_O_Kco3q1zNuUal8PThuH6cNvkAbrOVHL9urE_aIqdXrPjAhbwo1bUw0eDIG8pqqOB_i_GQWSoKBA-Qe4vAu3PbUC_CAsQiuTdl5s1Zq4JwiPCu8uv05ltwkYanbDxWJGDhTz1ZHX10FUCPJdN00CZY8X4TqNuEXR5GTdEIpnZTjuvo");'>
+</div>
+<div class="absolute bottom-0 right-0 bg-primary text-background-dark text-xs font-bold px-3 py-1 rounded-full border-2 border-background-dark">
+                PRO
+            </div>
+</div>
+<div class="mt-4 flex flex-col items-center">
+<h1 class="text-2xl font-bold leading-tight">@GolfProJeff</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm mt-1">San Diego, CA • Member since Aug 2023</p>
+</div>
+</div>
+<!-- Progress Card -->
+<div class="px-4 mb-8">
+<div class="bg-white dark:bg-surface-dark rounded-xl p-5 shadow-sm border border-slate-200 dark:border-white/5">
+<div class="flex justify-between items-end mb-3">
+<div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">Current Rank</p>
+<p class="text-lg font-bold text-primary">Level 14 - Fairway Finder</p>
+</div>
+<p class="text-slate-900 dark:text-white font-mono font-medium">1,240 <span class="text-slate-400 text-sm">/ 2,000 XP</span></p>
+</div>
+<div class="relative h-3 w-full bg-slate-200 dark:bg-black/40 rounded-full overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-primary rounded-full" style="width: 62%;">
+<div class="absolute inset-0 bg-white/20 w-full h-full animate-pulse"></div>
+</div>
+</div>
+<p class="text-right text-slate-400 text-xs mt-2">Next: Power Hitter</p>
+</div>
+</div>
+<!-- Stats Section -->
+<div class="px-4 mb-8">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-xl font-bold">Swing DNA</h2>
+<button class="text-primary text-sm font-medium hover:underline">View History</button>
+</div>
+<div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/5 p-6 relative overflow-hidden">
+<!-- Decorative background glow -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-primary/5 blur-3xl rounded-full pointer-events-none"></div>
+<div class="flex flex-col gap-6">
+<div class="flex justify-between items-center">
+<span class="text-slate-500 dark:text-slate-300 font-medium">Overall Score</span>
+<span class="text-3xl font-bold text-primary">82<span class="text-lg text-slate-500 font-normal">/100</span></span>
+</div>
+<div class="relative w-full aspect-[16/10] flex items-center justify-center">
+<svg class="w-full h-full" viewbox="0 0 300 220" xmlns="http://www.w3.org/2000/svg">
+<!-- Grid Lines -->
+<polygon class="text-slate-900 dark:text-white" fill="none" points="150,20 270,80 270,180 150,220 30,180 30,80" stroke="currentColor" stroke-opacity="0.1" stroke-width="1"></polygon>
+<polygon class="text-slate-900 dark:text-white" fill="none" points="150,60 222,96 222,156 150,180 78,156 78,96" stroke="currentColor" stroke-opacity="0.1" stroke-width="1"></polygon>
+<line class="text-slate-900 dark:text-white" stroke="currentColor" stroke-opacity="0.1" stroke-width="1" x1="150" x2="150" y1="110" y2="20"></line>
+<line class="text-slate-900 dark:text-white" stroke="currentColor" stroke-opacity="0.1" stroke-width="1" x1="150" x2="270" y1="110" y2="80"></line>
+<line class="text-slate-900 dark:text-white" stroke="currentColor" stroke-opacity="0.1" stroke-width="1" x1="150" x2="270" y1="110" y2="180"></line>
+<line class="text-slate-900 dark:text-white" stroke="currentColor" stroke-opacity="0.1" stroke-width="1" x1="150" x2="150" y1="110" y2="220"></line>
+<line class="text-slate-900 dark:text-white" stroke="currentColor" stroke-opacity="0.1" stroke-width="1" x1="150" x2="30" y1="110" y2="180"></line>
+<line class="text-slate-900 dark:text-white" stroke="currentColor" stroke-opacity="0.1" stroke-width="1" x1="150" x2="30" y1="110" y2="80"></line>
+<!-- Data Shape -->
+<polygon fill="#13ec5b" fill-opacity="0.2" points="150,30 250,90 230,170 150,190 60,160 50,100" stroke="#13ec5b" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></polygon>
+<!-- Data Points -->
+<circle cx="150" cy="30" fill="#13ec5b" r="4"></circle>
+<circle cx="250" cy="90" fill="#13ec5b" r="4"></circle>
+<circle cx="230" cy="170" fill="#13ec5b" r="4"></circle>
+<circle cx="150" cy="190" fill="#13ec5b" r="4"></circle>
+<circle cx="60" cy="160" fill="#13ec5b" r="4"></circle>
+<circle cx="50" cy="100" fill="#13ec5b" r="4"></circle>
+</svg>
+<!-- Labels overlaid absolutely for better text control -->
+<div class="absolute top-0 left-1/2 -translate-x-1/2 -mt-2 text-xs font-bold text-primary">TEMPO</div>
+<div class="absolute top-1/4 right-0 mr-2 text-xs font-bold text-slate-500 dark:text-slate-400">SPEED</div>
+<div class="absolute bottom-1/4 right-0 mr-4 text-xs font-bold text-slate-500 dark:text-slate-400">PLANE</div>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 mb-1 text-xs font-bold text-slate-500 dark:text-slate-400">ROTATION</div>
+<div class="absolute bottom-1/4 left-0 ml-4 text-xs font-bold text-slate-500 dark:text-slate-400">BALANCE</div>
+<div class="absolute top-1/4 left-0 ml-2 text-xs font-bold text-slate-500 dark:text-slate-400">POWER</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Trophy Case -->
+<div class="pl-4 mb-8">
+<h2 class="text-xl font-bold mb-4 pr-4">Trophy Case</h2>
+<div class="flex gap-4 overflow-x-auto no-scrollbar pb-2 pr-4">
+<!-- Badge 1 -->
+<div class="flex flex-col items-center gap-2 min-w-[80px]">
+<div class="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-lg shadow-yellow-500/20">
+<span class="material-symbols-outlined text-background-dark !text-3xl">timer</span>
+</div>
+<span class="text-xs text-center font-medium leading-tight">Perfect<br/>Tempo</span>
+</div>
+<!-- Badge 2 -->
+<div class="flex flex-col items-center gap-2 min-w-[80px]">
+<div class="w-16 h-16 rounded-full bg-gradient-to-br from-slate-300 to-slate-500 flex items-center justify-center shadow-lg shadow-slate-500/20">
+<span class="material-symbols-outlined text-background-dark !text-3xl">local_fire_department</span>
+</div>
+<span class="text-xs text-center font-medium leading-tight">100 Day<br/>Streak</span>
+</div>
+<!-- Badge 3 -->
+<div class="flex flex-col items-center gap-2 min-w-[80px]">
+<div class="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+<span class="material-symbols-outlined text-background-dark !text-3xl">bolt</span>
+</div>
+<span class="text-xs text-center font-medium leading-tight">Power<br/>Hitter</span>
+</div>
+<!-- Badge 4 (Locked) -->
+<div class="flex flex-col items-center gap-2 min-w-[80px] opacity-50 grayscale">
+<div class="w-16 h-16 rounded-full bg-surface-dark border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-white/50 !text-3xl">lock</span>
+</div>
+<span class="text-xs text-center font-medium leading-tight">Eagle<br/>Eye</span>
+</div>
+<!-- Badge 5 (Locked) -->
+<div class="flex flex-col items-center gap-2 min-w-[80px] opacity-50 grayscale">
+<div class="w-16 h-16 rounded-full bg-surface-dark border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-white/50 !text-3xl">lock</span>
+</div>
+<span class="text-xs text-center font-medium leading-tight">Pro<br/>Tour</span>
+</div>
+</div>
+</div>
+<!-- Recent History -->
+<div class="px-4 mb-4">
+<h2 class="text-xl font-bold mb-4">Recent Sessions</h2>
+<div class="flex flex-col gap-3">
+<!-- Item 1 -->
+<div class="bg-white dark:bg-surface-dark rounded-xl p-3 flex items-center gap-4 border border-slate-200 dark:border-white/5">
+<div class="h-16 w-16 rounded-lg bg-cover bg-center shrink-0 relative overflow-hidden" data-alt="Golf ball on tee with sunset background" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAb7qef_MUbOehRzs3Pjg8tTw7b4ufL6_vssD8frFUSELPt8ekz2HlxmdtVNDaOFvxkUYZPOrtvG6iHA4oTQyGb44I2AiVO6fNnrGc7p_CjOg3T-vDNHV83jfgtcWdUZTGb5endHVCVCACaxGh9xjubDRvpIMxDT2NwTPu-Tr2Geud1OQ8XQDLXbUdTOvhsDOCifZQy2HSn9b65cWxVXMBBXAm4ley01FzQIWSeiYao9osIpXwQZ60tcHil4VaH4FQy4P133bpWXJQ");'>
+<div class="absolute inset-0 bg-black/20"></div>
+<span class="material-symbols-outlined text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">play_circle</span>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-bold truncate text-slate-900 dark:text-white">Range Session</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400">Today • 45 Swings</p>
+</div>
+<div class="flex flex-col items-end gap-1">
+<div class="bg-primary/20 text-primary px-2 py-1 rounded text-xs font-bold">A+</div>
+<span class="text-[10px] text-slate-400">98 mph</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-white dark:bg-surface-dark rounded-xl p-3 flex items-center gap-4 border border-slate-200 dark:border-white/5">
+<div class="h-16 w-16 rounded-lg bg-cover bg-center shrink-0 relative overflow-hidden" data-alt="Golfer swinging driver in silhouette" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDquo5_lwZXd2aLRa1Uc3EvIsmaX7UeaNFhJ0mp_aJL8mn_fzmcdzifiRvPqwHxQmz6A4-oospukV8iq3Dhhd8gKbmYuoRGLYjL_eNogENrlKODkHTAd0YFbo3A1AHkXzcHMrO9NCUggk_tUVHoJflD7p54OOtHlxK7b3TtaHPkBMolJMWYz2Jvap1u8WQ275REHhnz_tBA3n0QaZ2uFrxXEZKHSck0DfVwXJ3gnMGnXm5tg2EgiCayMs2X1zAhF-_Z4JN5Juv6wbQ");'>
+<div class="absolute inset-0 bg-black/20"></div>
+<span class="material-symbols-outlined text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">play_circle</span>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-bold truncate text-slate-900 dark:text-white">Driver Drill</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400">Yesterday • 20 Swings</p>
+</div>
+<div class="flex flex-col items-end gap-1">
+<div class="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded text-xs font-bold">B-</div>
+<span class="text-[10px] text-slate-400">92 mph</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="bg-white dark:bg-surface-dark rounded-xl p-3 flex items-center gap-4 border border-slate-200 dark:border-white/5">
+<div class="h-16 w-16 rounded-lg bg-cover bg-center shrink-0 relative overflow-hidden" data-alt="Green putting green texture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDrrmBhC9SBJxLhfwixQ27VyBchKCXZ5npc6CuGBC4MrthYNu-By7Gp3K62Tjz2kDAl4sLHwlrHu1UY-QZNwZs7BzSVD7fu_RHotempXedyONlc2lCU4Rft5rnJP-TavcGIYgP4cbIMueyJX3Dp90HOYF81zQvTqYTNE0N67e3ha8LxhgvndN1IRDoEH9P9_xm_MST3CJB4_dDLeVexE4f8-XBsWyigYukHINaEIwknhbUo3gdTwyT0qZeg4zhCmLtZvMYDk08ALhQ");'>
+<div class="absolute inset-0 bg-black/20"></div>
+<span class="material-symbols-outlined text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">play_circle</span>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-bold truncate text-slate-900 dark:text-white">Iron Practice</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400">Oct 24 • 110 Swings</p>
+</div>
+<div class="flex flex-col items-end gap-1">
+<div class="bg-primary/20 text-primary px-2 py-1 rounded text-xs font-bold">A</div>
+<span class="text-[10px] text-slate-400">88 mph</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation -->
+<div class="fixed bottom-0 left-0 w-full bg-white/90 dark:bg-[#102216]/95 backdrop-blur-lg border-t border-slate-200 dark:border-white/5 pb-5 pt-3 px-6 z-50">
+<div class="flex justify-between items-center max-w-md mx-auto">
+<button class="flex flex-col items-center gap-1 w-16 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-16 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-[10px] font-medium">Review</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-16 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">emoji_events</span>
+<span class="text-[10px] font-medium">Challenge</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-16 text-primary">
+<span class="material-symbols-outlined filled" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</div>
+</div>
+</body></html>

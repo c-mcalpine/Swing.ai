@@ -1,0 +1,583 @@
+/* Import Material Symbols */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+/* Material Symbols Configuration */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 24px;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Main Container */
+.home-screen {
+  min-height: 100vh;
+  background-color: #102216;
+  color: white;
+  padding-bottom: 96px; /* Space for bottom nav */
+  position: relative;
+}
+
+/* Header Section */
+.home-screen__header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background-color: rgba(16, 34, 22, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+.home-screen__header-content {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-screen__profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-screen__profile-avatar-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.home-screen__profile-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid #13ec5b;
+}
+
+.home-screen__profile-level {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background-color: #1c271f;
+  color: #13ec5b;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.home-screen__profile-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-screen__profile-greeting {
+  font-size: 12px;
+  color: #9db9a6;
+  font-weight: 500;
+}
+
+.home-screen__profile-name {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.home-screen__notification-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  color: white;
+}
+
+.home-screen__notification-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.home-screen__notification-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  border: 2px solid #102216;
+}
+
+/* Gamification Dashboard */
+.home-screen__gamification {
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.home-screen__status-pills {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.home-screen__status-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.home-screen__status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1c271f;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 8px 16px;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.home-screen__status-icon {
+  font-size: 20px;
+}
+
+.home-screen__status-icon--fire {
+  color: #f97316;
+}
+
+.home-screen__status-icon--rank {
+  color: #13ec5b;
+}
+
+.home-screen__status-icon--trend {
+  color: #60a5fa;
+}
+
+.home-screen__status-text {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* XP Progress Card */
+.home-screen__xp-card {
+  background-color: #1c271f;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.home-screen__xp-card-trophy {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.home-screen__xp-card-trophy .material-symbols-outlined {
+  font-size: 120px;
+}
+
+.home-screen__xp-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 10;
+}
+
+.home-screen__xp-card-label {
+  font-size: 12px;
+  color: #9db9a6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.home-screen__xp-card-level-num {
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.home-screen__xp-current {
+  color: #13ec5b;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.home-screen__xp-max {
+  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.home-screen__xp-progress {
+  position: relative;
+  z-index: 10;
+}
+
+.home-screen__xp-progress-bar {
+  height: 12px;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.home-screen__xp-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(19, 236, 91, 0.8), #13ec5b);
+  border-radius: 9999px;
+  box-shadow: 0 0 12px rgba(19, 236, 91, 0.5);
+  transition: width 0.5s ease;
+}
+
+.home-screen__xp-remaining {
+  font-size: 12px;
+  color: #9db9a6;
+  margin-top: 8px;
+  text-align: right;
+}
+
+/* Divider */
+/* Capture Swing CTA */
+.home-screen__capture-cta {
+  padding: 16px;
+}
+
+.home-screen__capture-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #13ec5b 0%, #0fd44e 100%);
+  color: #0a1510;
+  border: none;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px rgba(19, 236, 91, 0.3);
+}
+
+.home-screen__capture-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(19, 236, 91, 0.4);
+}
+
+.home-screen__capture-btn:active {
+  transform: translateY(0);
+}
+
+.home-screen__capture-btn .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.home-screen__divider {
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.05);
+  margin: 0 16px;
+}
+
+/* Today's Practice Section */
+.home-screen__practice {
+  padding-top: 24px;
+  padding-bottom: 8px;
+}
+
+.home-screen__practice-header {
+  padding: 0 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-screen__practice-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.home-screen__practice-link {
+  color: #13ec5b;
+  font-size: 14px;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.home-screen__practice-link:hover {
+  text-decoration: underline;
+}
+
+/* Hero Lesson Card */
+.home-screen__hero-lesson {
+  padding: 0 16px 24px;
+}
+
+.home-screen__lesson-card--hero {
+  background-color: #1c271f;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.home-screen__lesson-card--hero:hover {
+  transform: scale(1.01);
+}
+
+.home-screen__lesson-image {
+  position: relative;
+  height: 224px;
+  width: 100%;
+  background-size: cover;
+  background-position: center;
+}
+
+.home-screen__lesson-image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, #1c271f, rgba(28, 39, 31, 0.2), transparent);
+}
+
+.home-screen__lesson-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.home-screen__lesson-badge .material-symbols-outlined {
+  color: #13ec5b;
+  font-size: 14px;
+}
+
+.home-screen__lesson-content {
+  padding: 20px;
+  margin-top: -48px;
+  position: relative;
+  z-index: 10;
+}
+
+.home-screen__lesson-title {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.home-screen__lesson-description {
+  color: #9db9a6;
+  font-size: 14px;
+}
+
+.home-screen__lesson-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 16px;
+}
+
+.home-screen__lesson-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #9db9a6;
+  font-size: 14px;
+}
+
+.home-screen__lesson-meta-item .material-symbols-outlined {
+  color: #13ec5b;
+  font-size: 18px;
+}
+
+.home-screen__lesson-xp {
+  margin-left: auto;
+  color: #13ec5b;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: rgba(19, 236, 91, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.home-screen__lesson-btn {
+  width: 100%;
+  background-color: #13ec5b;
+  color: #102216;
+  font-weight: 700;
+  padding: 14px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 20px rgba(19, 236, 91, 0.2);
+}
+
+.home-screen__lesson-btn:hover {
+  background-color: rgba(19, 236, 91, 0.9);
+}
+
+.home-screen__lesson-btn:active {
+  transform: scale(0.95);
+}
+
+/* Quick Drills */
+.home-screen__quick-drills {
+  padding-left: 16px;
+}
+
+.home-screen__quick-drills-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.home-screen__quick-drills-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 24px;
+  padding-right: 16px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.home-screen__quick-drills-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.home-screen__drill-card {
+  min-width: 280px;
+  background-color: #1c271f;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.home-screen__drill-card:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.home-screen__drill-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.home-screen__drill-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.home-screen__drill-title {
+  font-weight: 700;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-screen__drill-description {
+  color: #9db9a6;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.home-screen__drill-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-screen__drill-duration {
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.home-screen__drill-duration .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.home-screen__drill-xp {
+  font-size: 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .home-screen__lesson-image {
+    height: 180px;
+  }
+  
+  .home-screen__lesson-title {
+    font-size: 20px;
+  }
+}
+

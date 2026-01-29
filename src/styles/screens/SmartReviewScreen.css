@@ -1,0 +1,423 @@
+/* Import Material Symbols */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+.material-symbols-outlined.filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.smart-review-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #102216;
+  color: white;
+  overflow-x: hidden;
+  padding-bottom: 96px;
+}
+
+/* ===== HEADER ===== */
+.smart-review-screen__header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: rgba(16, 34, 22, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 1rem 1rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.smart-review-screen__header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.smart-review-screen__retention-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #1c271f;
+  padding: 0.5rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.smart-review-screen__retention-icon {
+  color: #13ec5b;
+  font-size: 20px;
+}
+
+.smart-review-screen__retention-text {
+  color: #9db9a6;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.smart-review-screen__profile-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: #1c271f;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid #13ec5b;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.smart-review-screen__profile-avatar:hover {
+  border-color: rgba(19, 236, 91, 0.7);
+}
+
+.smart-review-screen__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: white;
+  margin: 0;
+}
+
+/* ===== MAIN CONTENT ===== */
+.smart-review-screen__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-top: 1.5rem;
+}
+
+.smart-review-screen__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0 1rem;
+}
+
+.smart-review-screen__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.smart-review-screen__section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+.smart-review-screen__priority-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #13ec5b;
+  background-color: rgba(19, 236, 91, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+}
+
+/* ===== HERO CARD CUSTOMIZATION ===== */
+.smart-review-screen__hero-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: white;
+  margin: 0 0 0.5rem;
+}
+
+.smart-review-screen__hero-description {
+  color: #9db9a6;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0 0 1rem;
+}
+
+.smart-review-screen__progress-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.smart-review-screen__progress-circle {
+  position: relative;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.smart-review-screen__progress-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.smart-review-screen__progress-bg {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.smart-review-screen__progress-fill {
+  color: #13ec5b;
+}
+
+.smart-review-screen__progress-text {
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.smart-review-screen__hero-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.smart-review-screen__coaches {
+  display: flex;
+  margin-left: -0.5rem;
+}
+
+.smart-review-screen__coach-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid #1c271f;
+  margin-left: -0.5rem;
+}
+
+.smart-review-screen__coaches-more {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid #1c271f;
+  background-color: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: white;
+  margin-left: -0.5rem;
+}
+
+.smart-review-screen__start-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 9999px;
+  background-color: #13ec5b;
+  color: #102216;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(19, 236, 91, 0.2);
+  transition: all 0.2s ease;
+}
+
+.smart-review-screen__start-btn:hover {
+  background-color: rgba(19, 236, 91, 0.9);
+}
+
+.smart-review-screen__start-btn:active {
+  transform: scale(0.95);
+}
+
+.smart-review-screen__start-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* ===== TIMELINE ===== */
+.smart-review-screen__timeline-card {
+  background-color: #1c271f;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.smart-review-screen__timeline {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  column-gap: 1rem;
+}
+
+.smart-review-screen__timeline-item {
+  display: contents;
+}
+
+.smart-review-screen__timeline-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding-top: 0.25rem;
+}
+
+.smart-review-screen__timeline-connector {
+  width: 2px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+
+.smart-review-screen__timeline-connector--top {
+  height: 0.5rem;
+}
+
+.smart-review-screen__timeline-connector--bottom {
+  flex: 1;
+}
+
+.smart-review-screen__timeline-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.smart-review-screen__timeline-icon--blue {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.smart-review-screen__timeline-icon--orange {
+  background-color: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+}
+
+.smart-review-screen__timeline-icon--primary {
+  background-color: rgba(19, 236, 91, 0.2);
+  color: #13ec5b;
+}
+
+.smart-review-screen__timeline-icon--active {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.smart-review-screen__timeline-icon .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.smart-review-screen__timeline-content {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 1.5rem;
+  padding-top: 0.25rem;
+}
+
+.smart-review-screen__timeline-item:last-child .smart-review-screen__timeline-content {
+  padding-bottom: 0.5rem;
+}
+
+.smart-review-screen__timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.smart-review-screen__timeline-title {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: white;
+  margin: 0;
+}
+
+.smart-review-screen__timeline-title--active {
+  color: #13ec5b;
+}
+
+.smart-review-screen__timeline-time {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.smart-review-screen__timeline-time--active {
+  color: #13ec5b;
+  font-weight: 700;
+}
+
+.smart-review-screen__timeline-description {
+  color: #9db9a6;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ===== QUICK DRILLS ===== */
+.smart-review-screen__drills-section {
+  padding-bottom: 1rem;
+}
+
+.smart-review-screen__drills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.smart-review-screen__drill-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.smart-review-screen__drill-duration {
+  font-size: 0.625rem;
+  font-weight: 700;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #9ca3af;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.smart-review-screen__drill-badge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  background-color: rgba(19, 236, 91, 0.2);
+  color: #13ec5b;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.smart-review-screen__drill-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.smart-review-screen__drill-action:hover {
+  background-color: rgba(19, 236, 91, 0.2);
+  color: #13ec5b;
+}

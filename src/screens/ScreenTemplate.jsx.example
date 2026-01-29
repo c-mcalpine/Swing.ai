@@ -1,0 +1,79 @@
+/**
+ * SCREEN TEMPLATE
+ * 
+ * Copy this file to create a new screen component.
+ * Replace "ScreenTemplate" with your actual screen name (e.g., "HomeScreen")
+ * 
+ * Steps:
+ * 1. Copy this file and rename it (e.g., HomeScreen.jsx)
+ * 2. Replace all instances of "ScreenTemplate" with your screen name
+ * 3. Create corresponding CSS file in src/styles/screens/
+ * 4. Convert HTML content to JSX
+ * 5. Add route to src/App.jsx
+ */
+
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import '../styles/screens/ScreenTemplate.css'
+
+// Import any components you need
+// import Button from '../components/Button'
+// import Header from '../components/Header'
+
+function ScreenTemplate() {
+  // Router hooks
+  const navigate = useNavigate()
+  const params = useParams()
+
+  // State management
+  const [data, setData] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Effects
+  useEffect(() => {
+    // Component mount logic
+    // Fetch data, initialize, etc.
+  }, [])
+
+  // Event handlers
+  const handleClick = () => {
+    // Handle user interaction
+  }
+
+  const handleNavigate = (path) => {
+    navigate(path)
+  }
+
+  // Render loading state
+  if (isLoading) {
+    return (
+      <div className="screen-template screen-template--loading">
+        <p>Loading...</p>
+      </div>
+    )
+  }
+
+  // Main render
+  return (
+    <div className="screen-template">
+      {/* Header/Navigation */}
+      <header className="screen-template__header">
+        <h1>Screen Title</h1>
+      </header>
+
+      {/* Main Content */}
+      <main className="screen-template__content">
+        {/* Your converted HTML content goes here */}
+        <p>Screen content</p>
+      </main>
+
+      {/* Footer/Actions */}
+      <footer className="screen-template__footer">
+        <button onClick={handleClick}>Action</button>
+      </footer>
+    </div>
+  )
+}
+
+export default ScreenTemplate
+

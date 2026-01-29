@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Personalized Plan Overview</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#111813", /* Matching the example snippet bg */
+                        "surface-dark": "#1c271f",
+                        "surface-light": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white antialiased overflow-x-hidden pb-24">
+<!-- Top App Bar -->
+<div class="flex flex-col gap-2 p-4 pb-2 sticky top-0 z-10 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md">
+<div class="flex items-center h-12 justify-between">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-center bg-cover border-2 border-primary/20" data-alt="User profile avatar of a smiling man" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBrw5OCm3HZKFZyzmaf9QRxVcVTdEuSqZ7bkbwy6OZDUeovPexP4MLw9zZB530Pq153nMkD3ejUzOEyqXqF1AiIKYpviUOJwnco3UXZAz6toEjbiQ6_n9kU7tCR0oNd75cJ58CvUgrGq2RmXTiNa5kYZlxsO7-3P0aCHhdPVPj6UzoudlvXwigsl5QoRbFdNwBI2RG4Y_wpf-bkY6anA9JYz4UaZ2a67k6ZAIdWCyytWhC1fGxZ6N0K0Pjcu7Zgob2FpL4hcBHSePc');">
+</div>
+</div>
+<p class="tracking-light text-[28px] font-bold leading-tight">Your Roadmap</p>
+</div>
+<!-- Phase & Progress -->
+<div class="flex flex-col gap-3 px-4 pt-2">
+<h2 class="tracking-light text-xl font-bold leading-tight text-gray-800 dark:text-gray-100">Phase 2: Iron Play Mastery</h2>
+<div class="flex flex-col gap-2">
+<div class="flex gap-6 justify-between items-end">
+<p class="text-base font-medium leading-normal text-gray-600 dark:text-gray-300">Week 4 of 12</p>
+<p class="text-sm font-bold text-primary">35% Complete</p>
+</div>
+<div class="h-3 rounded-full bg-gray-200 dark:bg-[#3b5443] overflow-hidden">
+<div class="h-full rounded-full bg-primary shadow-[0_0_10px_rgba(19,236,91,0.5)]" style="width: 35%;"></div>
+</div>
+</div>
+</div>
+<!-- Spacer -->
+<div class="h-6"></div>
+<!-- Today's Focus Card -->
+<div class="px-4 @container">
+<div class="flex flex-col items-stretch justify-start rounded-[2rem] shadow-sm bg-surface-light dark:bg-surface-dark overflow-hidden ring-1 ring-black/5 dark:ring-white/5">
+<div class="w-full bg-center bg-no-repeat aspect-video bg-cover" data-alt="Golfer performing a hip rotation drill on a green course" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB6TsnhhK2aieXHkjdr2BIZ-RztPxcggaq7mX68jBwPcTJymVUk4SbAKKA_1n14ntt0gRnM-lmnvxEql86WG8bFa4cmvm2yTX5KxeNblhX7CmsIlgjwo2fJNn5pghTxcFH5RGugDSxChXA7GO7CxOUCkeLb4p7k6Nly-ssInHkUgT9q0xQG5gln-Yd7y_0wIrC60FW7bevrBxrfaA-ikeIu26cxuokvXyIsIjcAPnB0x_7cPc4JS2M2-4bTitMB3Ct_AewTKL_kjqA");'>
+<div class="w-full h-full bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+<span class="px-3 py-1 rounded-full bg-primary text-background-dark text-xs font-bold uppercase tracking-wide">Next Up</span>
+</div>
+</div>
+<div class="flex w-full grow flex-col items-stretch justify-center gap-1 p-5">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-xl font-bold leading-tight tracking-[-0.015em] mb-1">Hip Rotation Drill</p>
+<p class="text-gray-500 dark:text-[#9db9a6] text-sm font-normal">15 min • Iron Play</p>
+</div>
+</div>
+<div class="h-4"></div>
+<button class="flex w-full cursor-pointer items-center justify-center rounded-full h-12 bg-primary hover:bg-[#0fd650] text-[#111813] text-base font-bold leading-normal transition-colors shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined mr-2 text-[20px]">play_arrow</span>
+<span>Start Lesson</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Stats Summary Row -->
+<div class="grid grid-cols-2 gap-4 px-4 mt-6">
+<div class="bg-surface-light dark:bg-surface-dark p-4 rounded-[1.5rem] flex flex-col gap-1 ring-1 ring-black/5 dark:ring-white/5">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-xl">trending_down</span>
+<span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Handicap</span>
+</div>
+<p class="text-2xl font-bold">14.2</p>
+<p class="text-xs text-primary font-medium">↓ 0.8 this month</p>
+</div>
+<div class="bg-surface-light dark:bg-surface-dark p-4 rounded-[1.5rem] flex flex-col gap-1 ring-1 ring-black/5 dark:ring-white/5">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-xl">golf_course</span>
+<span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Drills</span>
+</div>
+<p class="text-2xl font-bold">24</p>
+<p class="text-xs text-gray-400 font-medium">Completed total</p>
+</div>
+</div>
+<!-- Spacer -->
+<div class="h-6"></div>
+<!-- Weekly Schedule -->
+<div>
+<div class="flex justify-between items-end px-4 pb-4">
+<h3 class="text-lg font-bold leading-tight tracking-[-0.015em]">Weekly Schedule</h3>
+<a class="text-sm font-medium text-primary" href="#">View Calendar</a>
+</div>
+<div class="flex flex-col gap-3 px-4">
+<!-- Past Item -->
+<div class="flex items-center gap-4 p-4 rounded-[1.5rem] bg-surface-light dark:bg-surface-dark opacity-60">
+<div class="flex flex-col items-center justify-center min-w-[3rem] border-r border-gray-200 dark:border-gray-700 pr-4">
+<span class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">Mon</span>
+<span class="text-lg font-bold">12</span>
+</div>
+<div class="flex-1">
+<p class="font-bold text-base decoration-line-through">Grip Basics</p>
+<p class="text-xs text-primary font-medium">Completed</p>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-lg">check</span>
+</div>
+</div>
+<!-- Current Item (Highlighted) -->
+<div class="relative flex items-center gap-4 p-4 rounded-[1.5rem] bg-surface-light dark:bg-surface-dark border border-primary/30 shadow-[0_0_15px_rgba(19,236,91,0.1)]">
+<div class="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-12 bg-primary rounded-r-full"></div>
+<div class="flex flex-col items-center justify-center min-w-[3rem] border-r border-gray-200 dark:border-gray-700 pr-4">
+<span class="text-xs text-primary font-bold uppercase">Tue</span>
+<span class="text-lg font-bold text-primary">13</span>
+</div>
+<div class="flex-1">
+<p class="font-bold text-base">Smart Review</p>
+<p class="text-xs text-gray-500 dark:text-gray-300">Personalized quiz based on play</p>
+</div>
+<button class="px-4 py-2 rounded-full bg-primary text-[#111813] text-xs font-bold">
+                    Review
+                </button>
+</div>
+<!-- Future Item -->
+<div class="flex items-center gap-4 p-4 rounded-[1.5rem] bg-surface-light dark:bg-surface-dark">
+<div class="flex flex-col items-center justify-center min-w-[3rem] border-r border-gray-200 dark:border-gray-700 pr-4">
+<span class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">Wed</span>
+<span class="text-lg font-bold">14</span>
+</div>
+<div class="flex-1">
+<p class="font-bold text-base">Hip Rotation</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">15 min • Iron Play</p>
+</div>
+<div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-400">
+<span class="material-symbols-outlined text-lg">lock</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Spacer -->
+<div class="h-6"></div>
+<!-- Long Term Goals -->
+<div class="mb-6">
+<h3 class="text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-4">Long-Term Goals</h3>
+<div class="flex flex-col gap-4 px-4">
+<!-- Goal 1 -->
+<div class="p-5 rounded-[1.5rem] bg-surface-light dark:bg-surface-dark ring-1 ring-black/5 dark:ring-white/5">
+<div class="flex justify-between items-center mb-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+<span class="material-symbols-outlined">sports_golf</span>
+</div>
+<div>
+<p class="font-bold text-sm">Drive Distance &gt; 250y</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Current: 235y</p>
+</div>
+</div>
+<span class="text-sm font-bold text-blue-500">80%</span>
+</div>
+<div class="h-2 w-full bg-gray-200 dark:bg-black rounded-full overflow-hidden mt-2">
+<div class="h-full bg-blue-500 rounded-full" style="width: 80%"></div>
+</div>
+</div>
+<!-- Goal 2 -->
+<div class="p-5 rounded-[1.5rem] bg-surface-light dark:bg-surface-dark ring-1 ring-black/5 dark:ring-white/5">
+<div class="flex justify-between items-center mb-2">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500">
+<span class="material-symbols-outlined">show_chart</span>
+</div>
+<div>
+<p class="font-bold text-sm">Putting Avg &lt; 30</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Current: 34</p>
+</div>
+</div>
+<span class="text-sm font-bold text-purple-500">45%</span>
+</div>
+<div class="h-2 w-full bg-gray-200 dark:bg-black rounded-full overflow-hidden mt-2">
+<div class="h-full bg-purple-500 rounded-full" style="width: 45%"></div>
+</div>
+</div>
+<!-- Add Goal Button -->
+<button class="flex items-center justify-center gap-2 p-4 rounded-[1.5rem] border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 hover:text-primary hover:border-primary transition-colors">
+<span class="material-symbols-outlined">add</span>
+<span class="font-medium text-sm">Add New Goal</span>
+</button>
+</div>
+</div>
+<!-- Bottom Navigation -->
+<div class="fixed bottom-0 left-0 w-full bg-surface-light/90 dark:bg-surface-dark/95 backdrop-blur-lg border-t border-gray-200 dark:border-white/5 px-6 pb-6 pt-3 z-50">
+<div class="flex justify-between items-center">
+<button class="flex flex-col items-center gap-1 text-primary group">
+<div class="relative">
+<span class="material-symbols-outlined text-[28px] group-hover:scale-110 transition-transform filled">home</span>
+<span class="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
+</div>
+<span class="text-[10px] font-bold">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors group">
+<span class="material-symbols-outlined text-[28px] group-hover:scale-110 transition-transform">history_edu</span>
+<span class="text-[10px] font-medium">Review</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors group">
+<span class="material-symbols-outlined text-[28px] group-hover:scale-110 transition-transform">emoji_events</span>
+<span class="text-[10px] font-medium">Challenge</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors group">
+<span class="material-symbols-outlined text-[28px] group-hover:scale-110 transition-transform">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</div>
+</div>
+</body></html>

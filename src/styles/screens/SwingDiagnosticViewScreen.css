@@ -1,0 +1,258 @@
+.diagnostic-view {
+  min-height: 100vh;
+  background-color: var(--bg-primary, #ffffff);
+  padding-bottom: 80px;
+}
+
+.diagnostic-view__loading,
+.diagnostic-view__error,
+.diagnostic-view__not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  text-align: center;
+}
+
+.diagnostic-view__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background-color: var(--bg-primary, #ffffff);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.diagnostic-view__back-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-primary, #1f2937);
+}
+
+.diagnostic-view__title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin: 0;
+}
+
+.diagnostic-view__section {
+  padding: 24px 16px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.diagnostic-view__section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin: 0 0 16px 0;
+}
+
+.diagnostic-view__video-section {
+  padding: 24px 16px;
+  background-color: var(--bg-secondary, #f9fafb);
+}
+
+.diagnostic-view__video-placeholder {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: #e5e7eb;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #6b7280);
+}
+
+.diagnostic-view__scores {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.diagnostic-view__score-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diagnostic-view__score-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diagnostic-view__score-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #1f2937);
+}
+
+.diagnostic-view__score-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+}
+
+.diagnostic-view__score-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.diagnostic-view__score-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  transition: width 0.3s ease;
+}
+
+.diagnostic-view__errors,
+.diagnostic-view__mechanics,
+.diagnostic-view__cues,
+.diagnostic-view__drills {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.diagnostic-view__error-card,
+.diagnostic-view__mechanic-card,
+.diagnostic-view__cue-card,
+.diagnostic-view__drill-card {
+  padding: 16px;
+  background-color: var(--bg-secondary, #f9fafb);
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.diagnostic-view__drill-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.diagnostic-view__drill-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.diagnostic-view__error-header,
+.diagnostic-view__mechanic-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.diagnostic-view__error-name,
+.diagnostic-view__mechanic-name,
+.diagnostic-view__drill-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  margin: 0;
+}
+
+.diagnostic-view__error-severity,
+.diagnostic-view__mechanic-score {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  background-color: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+}
+
+.diagnostic-view__error-description,
+.diagnostic-view__mechanic-description,
+.diagnostic-view__drill-objective {
+  font-size: 14px;
+  color: var(--text-secondary, #6b7280);
+  margin: 8px 0;
+}
+
+.diagnostic-view__error-fix {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #dbeafe;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-primary, #1f2937);
+}
+
+.diagnostic-view__error-fix strong {
+  color: #1e40af;
+}
+
+.diagnostic-view__cue-text {
+  font-size: 14px;
+  color: var(--text-primary, #1f2937);
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.diagnostic-view__cue-type {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  font-style: italic;
+}
+
+.diagnostic-view__drill-meta {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.diagnostic-view__drill-difficulty,
+.diagnostic-view__drill-duration {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.diagnostic-view__drill-start-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: opacity 0.2s ease;
+}
+
+.diagnostic-view__drill-start-btn:hover {
+  opacity: 0.9;
+}
+
+.diagnostic-view__actions {
+  padding: 24px 16px;
+}
+
+.diagnostic-view__primary-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.diagnostic-view__primary-btn:hover {
+  opacity: 0.9;
+}
+

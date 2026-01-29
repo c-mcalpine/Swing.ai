@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Daily Lesson Content</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<!-- Fonts and Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        /* Custom scrollbar hiding for clean UI */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-x-hidden">
+<div class="relative flex min-h-screen flex-col w-full max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-2xl overflow-hidden">
+<!-- Sticky Header -->
+<header class="sticky top-0 z-50 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-white/5 pb-2">
+<div class="flex items-center justify-between p-4 pb-2">
+<button class="flex size-10 shrink-0 items-center justify-center rounded-full active:bg-white/10 text-white transition-colors">
+<span class="material-symbols-outlined" style="font-size: 24px;">arrow_back_ios_new</span>
+</button>
+<div class="flex-1 text-center">
+<p class="text-xs font-medium text-primary uppercase tracking-widest opacity-80">Day 12</p>
+<h1 class="text-white text-lg font-bold leading-tight tracking-tight">Fixing the Slice</h1>
+</div>
+<button class="flex size-10 shrink-0 items-center justify-center rounded-full active:bg-white/10 text-white transition-colors">
+<span class="material-symbols-outlined" style="font-size: 24px;">bookmark_border</span>
+</button>
+</div>
+<!-- Progress Bar -->
+<div class="px-4 pb-2">
+<div class="flex justify-between items-center mb-1">
+<span class="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Lesson Progress</span>
+<span class="text-[10px] text-primary font-bold">35%</span>
+</div>
+<div class="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+<div class="h-full rounded-full bg-primary" style="width: 35%"></div>
+</div>
+</div>
+</header>
+<!-- Scrollable Content -->
+<main class="flex-1 overflow-y-auto pb-32">
+<!-- Video Player -->
+<div class="p-4">
+<div class="relative w-full aspect-video rounded-xl overflow-hidden shadow-lg bg-black group cursor-pointer" data-alt="Golfer preparing for a drive on a sunny course" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAjcqPH9yZ54w0zNRaW1cNXdeWwwSpz_pQWqviqpOyZW7cMNwlHwGfhBv17S7uzSjMFN5jmYe-1V1CXbjofMvhm4XDwwKw7Rumy6BBaslEo4CjJuXYUKo2eBORcJ85SyCAewgYPegfXH5ArPq3TEtVD0ZtUU-QlvYz3x_X1gpmv6pQzGb8wjuXSv0dnboXylVyBT9F1mtesgjtK5nknw_3-36_8iePzLeDH9h1kM8zd0qv0go26JBKABgacpliLhnxT2WeouE72DYs'); background-size: cover; background-position: center;">
+<div class="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+<button class="flex shrink-0 items-center justify-center rounded-full size-16 bg-primary text-background-dark hover:scale-105 transition-transform shadow-[0_0_20px_rgba(19,236,91,0.4)] pl-1">
+<span class="material-symbols-outlined text-[32px] font-variation-settings-'FILL'1">play_arrow</span>
+</button>
+</div>
+<!-- Video Controls Overlay -->
+<div class="absolute bottom-3 left-4 right-4 flex justify-between items-center text-white/90">
+<span class="bg-black/60 px-2 py-0.5 rounded text-xs font-medium backdrop-blur-sm">02:14</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors text-xl">fullscreen</span>
+</div>
+</div>
+<!-- Tags -->
+<div class="flex gap-2 mt-4 flex-wrap">
+<span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-gray-300">Driver</span>
+<span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-gray-300">Intermediate</span>
+<span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-gray-300 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">timer</span> 5 min
+                    </span>
+</div>
+</div>
+<!-- Key Takeaways Section -->
+<section class="mt-2">
+<div class="flex items-center justify-between px-4 mb-3">
+<h2 class="text-white text-xl font-bold tracking-tight">THE MECHANICS</h2>
+<span class="text-primary text-sm font-medium cursor-pointer">View All</span>
+</div>
+<!-- Carousel -->
+<div class="flex overflow-x-auto hide-scrollbar px-4 pb-4 gap-4 snap-x snap-mandatory">
+<!-- Card 1 -->
+<div class="snap-center shrink-0 w-64 bg-[#1a2c20] rounded-xl overflow-hidden border border-white/5 flex flex-col h-full">
+<div class="h-32 w-full bg-cover bg-center" data-alt="Close up of golf grip hands on club" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCx6-w9vmZtNyzbQnF4j0sfozzpvPipvRhYOVzPos1vyX11C6iJjldP4JwNE1fDZpZAylndESvNlbDZzEK8niDjof4yFrge--Zfe8NWZBkGXC9T_SclMocYne0Cxp_lDDdhZZjsTXnwWG673sXSNUnX8at4w5aNP9NwnvO50cPnDyJc691Zwjbezy-JaSpv9hevjvefxUALroxF2-bKeoVHMGH6Hf5LpQuHsaRmSZCObQDODpR8PNr9jeIZu-c0UEw0fl-gaK5WWwQ');">
+</div>
+<div class="p-4 flex flex-col flex-1">
+<div class="flex items-start gap-2 mb-2">
+<span class="bg-primary/20 text-primary rounded-full size-6 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+<h3 class="text-white font-bold text-base">The Setup</h3>
+</div>
+<p class="text-gray-400 text-sm leading-relaxed">Ensure feet are shoulder-width apart. Flare your lead foot slightly.</p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="snap-center shrink-0 w-64 bg-[#1a2c20] rounded-xl overflow-hidden border border-white/5 flex flex-col h-full">
+<div class="h-32 w-full bg-cover bg-center" data-alt="Golfer silhouette showing swing path overlay" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBWISh6xZUrtdgJZ1yFFEC7ts3lCzUIhBYSRrMSCoB0Z4z_WXkaItbzPeX3mYiCsoQWZ6LsE6JDOeA7gbT_4uPigJmY7L3nsWQEsa3FSAv7e0WpO6B9ydnuzxG8_nokPUEs694wzv1cyIuL4psFGDhKYEZWcwf2vrqJxtbRHkjQCx15mhJl0-OUhooF2cBdxofgze8OSguS4esO5nzDFXjeZIIm_tGHzv6r1vTLTVW8S0WzlhvY58fqsO7wAcbch6EOkIiKXn7NH7w');">
+</div>
+<div class="p-4 flex flex-col flex-1">
+<div class="flex items-start gap-2 mb-2">
+<span class="bg-primary/20 text-primary rounded-full size-6 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+<h3 class="text-white font-bold text-base">Grip Check</h3>
+</div>
+<p class="text-gray-400 text-sm leading-relaxed">Maintain neutral grip pressure. Don't strangle the club handle.</p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="snap-center shrink-0 w-64 bg-[#1a2c20] rounded-xl overflow-hidden border border-white/5 flex flex-col h-full">
+<div class="h-32 w-full bg-cover bg-center" data-alt="Abstract motion blur of a golf club swing" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAbeWZiM5Fs7jsBRHGAlHMaV-isrnKYUx_VRONxEQ0Y6tC7Boe-LlVHwAMHA2Wi0LnjB5kJAMiEyC4LVh0DhXi71zPqRwDgqNALthKiCbybYveKO6nhZAntfM0Hzt4LV4EUr5cV1wwsACuIv-PWsepA6t9ALhWKAki7ZhcZ2GS1TeKo_A9fWn9FHq2qJ2RBNCY5lv_hGUvdSvg26YohikYSuwkyTkAzLdF0_y5aIOPAgJE0XQO0_Po2dRfMqTf6DS0zDQSflVgS_rM');">
+</div>
+<div class="p-4 flex flex-col flex-1">
+<div class="flex items-start gap-2 mb-2">
+<span class="bg-primary/20 text-primary rounded-full size-6 flex items-center justify-center text-xs font-bold shrink-0">3</span>
+<h3 class="text-white font-bold text-base">Swing Path</h3>
+</div>
+<p class="text-gray-400 text-sm leading-relaxed">Focus on an inside-out path to neutralize the slice spin.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Drill Section -->
+<section class="mt-4 px-4">
+<h2 class="text-white text-xl font-bold tracking-tight mb-3">PRACTICE DRILL</h2>
+<div class="bg-[#1a2c20] rounded-xl p-4 flex gap-4 items-center border border-white/5">
+<div class="size-20 rounded-lg bg-cover bg-center shrink-0" data-alt="Diagram of a golfer standing near a wall for a drill" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC9KAU9He6rJRIk2pCGkGVFT1u8Q2phHfhViKZFp59rMZTfDpuQ1HOkGa9DgPzSGQT8OiEYNMwOuuYtM_ribe-TSku9ZhW5clmSUwt6xmP4XNp3QJfKIMU5BfDrVcSmUkc9VfjFrMehPlUDuv05qfFgcacdOmev9qvkPnc0x7fMuRVg5do_CnNXbsSqB3aFXv0SyoJaDNRYAXQz3klJI7TDxZwjglCsaqpQE0y48s1mvyumGL93Umbaj4pYJcLcMxwCl16BQSby1XA');">
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-white font-bold text-base">The Wall Drill</h3>
+<span class="material-symbols-outlined text-primary" style="font-size: 20px;">check_circle</span>
+</div>
+<p class="text-gray-400 text-xs mt-1 leading-normal line-clamp-2">Stand with your back to a wall. Practice your takeaway without the club head hitting the wall.</p>
+<button class="mt-3 text-xs font-bold text-primary flex items-center gap-1 hover:text-white transition-colors">
+                            VIEW STEPS <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Swing Animation Widget -->
+<section class="mt-8 px-4 mb-4">
+<div class="bg-gradient-to-br from-primary/20 to-transparent rounded-2xl p-6 border border-primary/20 relative overflow-hidden">
+<div class="absolute -right-10 -top-10 size-40 bg-primary/20 rounded-full blur-3xl"></div>
+<div class="flex justify-between items-center relative z-10">
+<div>
+<h3 class="text-white font-bold text-lg">Swing Visualizer</h3>
+<p class="text-gray-300 text-xs mt-1">See the skeletal breakdown</p>
+</div>
+<button class="size-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined text-white">3d_rotation</span>
+</button>
+</div>
+<div class="mt-4 h-32 w-full rounded-xl bg-black/40 flex items-center justify-center border border-white/5" data-alt="Wireframe skeleton of a golfer swinging" style="background-image: radial-gradient(circle at center, rgba(19, 236, 91, 0.1) 0%, transparent 70%);">
+<!-- Abstract representation of the animation placeholder -->
+<div class="flex items-center gap-4 opacity-50">
+<span class="material-symbols-outlined text-4xl text-white">sports_golf</span>
+<div class="w-px h-8 bg-white/20"></div>
+<span class="text-xs text-white font-mono">LOADING MODEL...</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Sticky Footer CTA -->
+<footer class="fixed bottom-0 w-full max-w-md bg-background-dark/80 backdrop-blur-xl border-t border-white/5 p-4 z-50">
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-orange-400 text-sm font-variation-settings-'FILL'1">local_fire_department</span>
+<p class="text-xs text-white/80 font-medium">Finish to keep your <span class="text-white font-bold">12-day streak!</span></p>
+</div>
+<button class="relative w-full h-14 bg-primary rounded-full flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(19,236,91,0.3)] hover:shadow-[0_0_35px_rgba(19,236,91,0.5)] active:scale-[0.98] transition-all group overflow-hidden">
+<!-- Subtle shine effect -->
+<div class="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"></div>
+<span class="material-symbols-outlined text-background-dark text-xl font-bold">check</span>
+<span class="text-background-dark text-base font-bold tracking-wide">MARK COMPLETE</span>
+<span class="bg-black/10 px-2 py-0.5 rounded-full text-xs font-bold text-background-dark ml-1">+50 XP</span>
+</button>
+</div>
+</footer>
+</div>
+<!-- Shimmer Animation Definition -->
+<style>
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+    </style>
+</body></html>

@@ -1,0 +1,49 @@
+/* Progress Indicator Component */
+
+.progress-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.progress-indicator__item {
+  height: 6px;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+}
+
+/* Dots variant */
+.progress-indicator__item--dots {
+  width: 8px;
+  background-color: #4b5563;
+}
+
+.progress-indicator__item--dots.progress-indicator__item--active {
+  width: 32px;
+  background-color: #13ec5b;
+  box-shadow: 0 0 10px rgba(19, 236, 91, 0.5);
+}
+
+.progress-indicator__item--dots.progress-indicator__item--past {
+  background-color: rgba(19, 236, 91, 0.3);
+}
+
+/* Bars variant */
+.progress-indicator__item--bars {
+  flex: 1;
+  background-color: #4b5563;
+  height: 4px;
+}
+
+.progress-indicator__item--bars.progress-indicator__item--active,
+.progress-indicator__item--bars.progress-indicator__item--past {
+  background-color: #13ec5b;
+  box-shadow: 0 0 8px rgba(19, 236, 91, 0.3);
+}
+
+/* Accessibility */
+.progress-indicator__item[aria-current="step"] {
+  position: relative;
+}
+

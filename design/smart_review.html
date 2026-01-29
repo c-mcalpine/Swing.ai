@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smart Review - Golf Coach</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#1c2e23",
+                        "surface-light": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem", 
+                        "lg": "1.5rem", 
+                        "xl": "2rem", 
+                        "2xl": "2.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-neutral-900 dark:text-white font-display antialiased selection:bg-primary selection:text-background-dark">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24">
+<!-- Header -->
+<header class="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 pt-4 pb-2 border-b border-transparent dark:border-white/5">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<!-- Brain Retention Pill -->
+<div class="flex items-center gap-2 bg-neutral-200 dark:bg-[#1c2e23] pl-2 pr-3 py-1 rounded-full border border-neutral-300 dark:border-white/10">
+<span class="material-symbols-outlined text-primary text-[20px]">psychology</span>
+<p class="text-neutral-700 dark:text-[#9db9a6] text-xs font-bold leading-normal tracking-wide uppercase">Retention: 85%</p>
+</div>
+</div>
+<!-- Profile Avatar placeholder -->
+<div class="h-10 w-10 rounded-full bg-neutral-200 dark:bg-[#1c2e23] bg-center bg-cover border-2 border-transparent hover:border-primary transition-colors cursor-pointer" data-alt="User profile picture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBfBPSEK00wDz93EIwdYTY8evnDnh2lX2ML1olL_jgLkz7wFJJYHXVjHzUDtAYZx5cYW3koBEcbDiupzmrm9_qA9KxRzJj6gvcAqoGLsS-YMHu_O2EYP4Ep5XdiFXETxAv28KSOfwiUGXmAyYlaqx5Dh6jGTaRmytRdXMYHe_sjslNa8znEGpIzR1WKi9RrheKqvgnbl7ysyhW-0cxIJs3IdqUo67y-I-I-9Ups2XeH4Rzaqzy6T00zru7p2EwSP9TAedttJEJreFQ');"></div>
+</div>
+<h1 class="text-3xl font-bold leading-tight tracking-tight">Smart Review</h1>
+</header>
+<!-- Main Content -->
+<main class="flex flex-col gap-6 pt-4">
+<!-- Hero Section: Up Next -->
+<section class="flex flex-col gap-3 px-4">
+<div class="flex items-center justify-between">
+<h3 class="text-xl font-bold leading-tight tracking-tight">Up Next</h3>
+<span class="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">High Priority</span>
+</div>
+<div class="group relative flex flex-col items-stretch justify-start rounded-2xl shadow-sm bg-surface-light dark:bg-surface-dark overflow-hidden border border-neutral-200 dark:border-white/5">
+<!-- Image Area -->
+<div class="relative h-48 w-full bg-neutral-800">
+<div class="absolute inset-0 bg-center bg-no-repeat bg-cover opacity-90 transition-transform duration-700 group-hover:scale-105" data-alt="Golfer performing a swing analysis on a driving range" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC9FXOKAEpmAu12CM8oS0U9vFKhZGhyprWjrODS_3PTaY-DeKt3AEQW5S0CHZoQruOV8KkAVuzpGSYPUvvPzR4SRiawOiV56YXbZ0OWL7r47dOGnoOUmjrtAaheXKDVMcD5HU9qQMDV_69bzU0CcsM8xBNaKt4P17mcuOY0H6UBUaaEalJS4LbxAcEzEUg0yYOV9gKfAveKCUYNWJz3e7tgs7ipeuAdWx06gAUwKrSS149gCrYl18_QB7y8JxoRDflxvsefDtIJ8_Y");'>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-light dark:from-surface-dark to-transparent"></div>
+<!-- Progress Overlay -->
+<div class="absolute top-4 right-4 bg-black/60 backdrop-blur-sm rounded-full p-1 pr-3 flex items-center gap-2">
+<div class="relative w-6 h-6 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-white/20" cx="12" cy="12" fill="transparent" r="10" stroke="currentColor" stroke-width="3"></circle>
+<circle class="text-primary" cx="12" cy="12" fill="transparent" r="10" stroke="currentColor" stroke-dasharray="62.8" stroke-dashoffset="15" stroke-width="3"></circle>
+</svg>
+</div>
+<span class="text-white text-xs font-bold">Part 2/3</span>
+</div>
+</div>
+<!-- Content Area -->
+<div class="flex w-full flex-col gap-3 p-5 pt-2">
+<div>
+<h2 class="text-2xl font-bold leading-tight tracking-tight mb-1">Slice Correction</h2>
+<p class="text-neutral-500 dark:text-[#9db9a6] text-sm font-normal leading-relaxed">
+                                It's been 6 days since your last session. Your swing path metrics are degrading slightly. Let's lock this in.
+                            </p>
+</div>
+<div class="flex items-center justify-between mt-2">
+<div class="flex -space-x-2 overflow-hidden">
+<img alt="" class="inline-block h-8 w-8 rounded-full ring-2 ring-surface-light dark:ring-surface-dark" data-alt="Coach thumbnail 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSH3vwxPi97Xos7QiNuHlnr2gWIz26Ffq9NyAWx6AJ4KozUj3FeY9_Vef01X-z2DEqfOqLxkEZ0RNBnLBXOsDV_3X-WLQ1_7iZdmUxTFawmZThWDYaTHLsjwiyZ9ji9YRPVMLqZ5h0z0lJYR-541pAgRMvKRE9AKv7Y9sTTcp1G4bxTKLvHy7eB5XWMYmDU3M29gVPv7KZBRQZ1yJA_5ZVS4WMs5IGjgMxrbqLOmX5goFaKiP-g1eWbcxZMw_HnxLFcmcbpaXSsNs"/>
+<img alt="" class="inline-block h-8 w-8 rounded-full ring-2 ring-surface-light dark:ring-surface-dark" data-alt="Coach thumbnail 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkF4CP5j2SMP80ssO_piD_Sp5GZLmKLg9QNNoQj4OLlKJrxzPRZEBdhKDcXK8nyfxV6-JlMMLpcOOU3Ut_hYK1l2Gf4oPSsCobeyxkZFYCZjkwoT1o-kKkSAdrpJX7QPQWLUx-TVPioF9hkXlSnjYO2AmQC1pj9PeAf0Oa9LZIhtyQs3wdQjHtOfhjMUWpjneDu_puqT4MCKZ1Id-dNU8EFBfrO4KX6jnZ48SeisKoilCvIYzeyw7kQZJZEw0_T_j5U_vyVF9L3sU"/>
+<span class="h-8 w-8 rounded-full ring-2 ring-surface-light dark:ring-surface-dark bg-neutral-200 dark:bg-white/10 flex items-center justify-center text-[10px] font-bold">+12</span>
+</div>
+<button class="flex items-center justify-center gap-2 rounded-full h-10 px-6 bg-primary hover:bg-green-400 text-background-dark text-sm font-bold leading-normal transition-all active:scale-95 shadow-[0_0_15px_rgba(19,236,91,0.3)]">
+<span class="material-symbols-outlined text-lg">play_arrow</span>
+<span>Start (15 min)</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Timeline Section: Review Cadence -->
+<section class="flex flex-col gap-2">
+<h3 class="text-xl font-bold leading-tight tracking-tight px-4 pt-2">Review Cadence</h3>
+<div class="bg-surface-light dark:bg-surface-dark mx-4 rounded-2xl p-4 border border-neutral-200 dark:border-white/5">
+<div class="grid grid-cols-[32px_1fr] gap-x-4">
+<!-- Item 1 -->
+<div class="flex flex-col items-center gap-1 pt-1">
+<div class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500/20 text-blue-400">
+<span class="material-symbols-outlined text-[18px]">sports_golf</span>
+</div>
+<div class="w-[2px] bg-neutral-200 dark:bg-white/10 h-full grow rounded-full"></div>
+</div>
+<div class="flex flex-1 flex-col pb-6">
+<div class="flex justify-between items-start">
+<p class="text-base font-bold leading-normal">Driver Consistency</p>
+<span class="text-xs text-neutral-400 dark:text-neutral-500">2 weeks ago</span>
+</div>
+<p class="text-neutral-500 dark:text-[#9db9a6] text-sm leading-normal">Fade bias detected in last 50 shots.</p>
+</div>
+<!-- Item 2 -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-[2px] bg-neutral-200 dark:bg-white/10 h-2 rounded-full"></div>
+<div class="flex items-center justify-center w-8 h-8 rounded-full bg-orange-500/20 text-orange-400">
+<span class="material-symbols-outlined text-[18px]">show_chart</span>
+</div>
+<div class="w-[2px] bg-neutral-200 dark:bg-white/10 h-full grow rounded-full"></div>
+</div>
+<div class="flex flex-1 flex-col py-2 pb-6">
+<div class="flex justify-between items-start">
+<p class="text-base font-bold leading-normal">Iron Contact</p>
+<span class="text-xs text-neutral-400 dark:text-neutral-500">1 week ago</span>
+</div>
+<p class="text-neutral-500 dark:text-[#9db9a6] text-sm leading-normal">Low point control is trending up.</p>
+</div>
+<!-- Item 3 -->
+<div class="flex flex-col items-center gap-1 pb-1">
+<div class="w-[2px] bg-neutral-200 dark:bg-white/10 h-2 rounded-full"></div>
+<div class="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary animate-pulse">
+<span class="material-symbols-outlined text-[18px]">golf_course</span>
+</div>
+</div>
+<div class="flex flex-1 flex-col py-2">
+<div class="flex justify-between items-start">
+<p class="text-base font-bold leading-normal text-primary">Putting Distance</p>
+<span class="text-xs text-primary font-bold">Due Today</span>
+</div>
+<p class="text-neutral-500 dark:text-[#9db9a6] text-sm leading-normal">Lag putting drill recommended.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Secondary List: Quick Drills -->
+<section class="flex flex-col gap-3 px-4 pb-4">
+<h3 class="text-xl font-bold leading-tight tracking-tight pt-2">Quick Drills</h3>
+<!-- Drill Card 1 -->
+<div class="flex items-center justify-start rounded-xl p-3 bg-surface-light dark:bg-surface-dark border border-neutral-200 dark:border-white/5 shadow-sm">
+<div class="h-16 w-16 bg-center bg-no-repeat bg-cover rounded-lg shrink-0" data-alt="Close up of a golf putter hitting a ball" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAcRbQHP_KN6w9PmfTxS3Rk6tHYeUdIxNuUnO4BvbT1T1m3HmAT0APXPtAu1iRqpkYVEjl3GrRcWiZsHiIeCWFTp9PAe7h-FBnXDw2Uetoz5rI8y_F_B7BMdX33L02YWn7J7u8IGswDGaQVwBsi7wzT2YWy0uks3sQdiE_ifwQ_tQRDuN2Wqu26jIMZGG25PHddh5FHTMMG7AtOztSjXxcgzSG9taB4xtMIkx-oYZ2fbt8VRoYbqTvv5O-oPlC-x3Dz6tSz5cus3tw");'></div>
+<div class="flex flex-col px-4 grow">
+<div class="flex justify-between items-start w-full">
+<p class="text-base font-bold leading-tight">Putting: Distance Control</p>
+<span class="text-[10px] font-bold bg-neutral-200 dark:bg-white/10 text-neutral-600 dark:text-neutral-400 px-2 py-0.5 rounded-full">5 min</span>
+</div>
+<p class="text-neutral-500 dark:text-[#9db9a6] text-xs mt-1">Due Tomorrow</p>
+</div>
+<button class="h-10 w-10 flex items-center justify-center rounded-full bg-neutral-100 dark:bg-white/5 hover:bg-primary/20 hover:text-primary transition-colors text-neutral-400 dark:text-white">
+<span class="material-symbols-outlined">play_arrow</span>
+</button>
+</div>
+<!-- Drill Card 2 -->
+<div class="flex items-center justify-start rounded-xl p-3 bg-surface-light dark:bg-surface-dark border border-neutral-200 dark:border-white/5 shadow-sm opacity-60">
+<div class="h-16 w-16 bg-center bg-no-repeat bg-cover rounded-lg shrink-0 grayscale" data-alt="Abstract green pattern representing bunker texture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD3GflR0LXFAoWsQ84GBaphwmg1rJKumLtl7o93zaxhFl_v_belIILy7kwNTSzPHBLdEaBfdY2ag4JQGMRjHq6lM3AA6wXN59fui1gDZVoP0V6yO7FrBZGygcRi_tWqkYoIzNPnYkDDYYhDPVy4vn_fAMTVqnY-diSxbkWeIyTt7qZ6d0jbhqT-bhu5Q6NZCpvKBtYgoZh2Tpy4Mo-x6OxCS7umjZ6G6IBmY8BQAvlumQ50wOPLGFsin7FTbefTHLCVUKSorbmhxHk");'></div>
+<div class="flex flex-col px-4 grow">
+<div class="flex justify-between items-start w-full">
+<p class="text-base font-bold leading-tight">Sand Saves: Basics</p>
+<span class="text-[10px] font-bold bg-primary/20 text-primary px-2 py-0.5 rounded-full">Mastered</span>
+</div>
+<p class="text-neutral-500 dark:text-[#9db9a6] text-xs mt-1">Last practiced: 3 days ago</p>
+</div>
+<button class="h-10 w-10 flex items-center justify-center rounded-full bg-neutral-100 dark:bg-white/5 text-neutral-400 dark:text-white">
+<span class="material-symbols-outlined">refresh</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 w-full bg-surface-light/80 dark:bg-[#102216]/90 backdrop-blur-lg border-t border-neutral-200 dark:border-white/5 pb-6 pt-2 z-50">
+<div class="flex justify-around items-center h-14 max-w-md mx-auto">
+<a class="flex flex-col items-center justify-center w-16 gap-1 group" href="#">
+<span class="material-symbols-outlined text-neutral-400 dark:text-neutral-500 group-hover:text-primary transition-colors text-[24px]">home</span>
+<span class="text-[10px] font-medium text-neutral-400 dark:text-neutral-500 group-hover:text-primary">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 gap-1" href="#">
+<div class="bg-primary/10 px-4 py-0.5 rounded-full flex flex-col items-center">
+<span class="material-symbols-outlined text-primary text-[24px] filled">school</span>
+<span class="text-[10px] font-bold text-primary">Review</span>
+</div>
+</a>
+<a class="flex flex-col items-center justify-center w-16 gap-1 group" href="#">
+<span class="material-symbols-outlined text-neutral-400 dark:text-neutral-500 group-hover:text-primary transition-colors text-[24px]">emoji_events</span>
+<span class="text-[10px] font-medium text-neutral-400 dark:text-neutral-500 group-hover:text-primary">Challenge</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 gap-1 group" href="#">
+<span class="material-symbols-outlined text-neutral-400 dark:text-neutral-500 group-hover:text-primary transition-colors text-[24px]">person</span>
+<span class="text-[10px] font-medium text-neutral-400 dark:text-neutral-500 group-hover:text-primary">Profile</span>
+</a>
+</div>
+</nav>
+</div>
+</body></html>

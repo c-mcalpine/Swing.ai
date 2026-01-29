@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Swing Recording Setup</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-dark": "#1c271f",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;700&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>/* Custom styles for the camera feed simulation */
+.camera-feed {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url(https://lh3.googleusercontent.com/aida-public/AB6AXuAENAjfy_lnlT_rlk7YRFNAAJRTbJuifB2k5VE-s097QbtFovF-nIK_aFgyoBz1ceZmVhvWcoz8wE9huR3ZJ2LPTL2ouazRbxwMeGZoSSE5N33-aOla9yCSIHXYy-xESyIXuELb3dqk_iUYJtQKRnM_E75PmtLyhkbbyw_2uaSTt85WEj_SbboDvDh0H0yQIjggFu8NAwr4FVou8acGAvuamk_hi_JLNOqrtvGAWNH5SUuCvJXn8hlixqmoLTAPQZtZ-0mC7b6bjXQ);
+    background-size: cover;
+    background-position: center
+    }
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+    display: none
+    }
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+    }</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased overflow-hidden h-screen w-full flex flex-col relative">
+<!-- Camera Feed Background (Acts as the main view) -->
+<div class="absolute inset-0 z-0 camera-feed" data-alt="Golf course driving range background">
+<!-- Overlay Guide (Golfer Silhouette) -->
+<div class="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+<svg class="h-3/4 w-auto stroke-white fill-none stroke-[2px] opacity-60" viewbox="0 0 200 400">
+<path d="M100,50 C110,50 120,60 120,70 C120,80 110,90 100,90 C90,90 80,80 80,70 C80,60 90,50 100,50 Z M100,90 L100,180 M100,180 L70,250 M100,180 L130,250 M70,140 L130,140" stroke-dasharray="8 4"></path>
+</svg>
+</div>
+<!-- Grid Lines for alignment -->
+<div class="absolute inset-0 pointer-events-none opacity-20">
+<div class="w-full h-1/3 border-b border-white/50"></div>
+<div class="w-full h-1/3 top-1/3 absolute border-b border-white/50"></div>
+<div class="h-full w-1/3 left-1/3 absolute border-r border-white/50 top-0"></div>
+<div class="h-full w-1/3 right-1/3 absolute border-r border-white/50 top-0"></div>
+</div>
+</div>
+<!-- UI Overlay Layer -->
+<div class="relative z-10 flex flex-col h-full justify-between pb-8 pt-safe-top">
+<!-- Top Bar -->
+<div class="flex flex-col w-full bg-gradient-to-b from-black/60 to-transparent pb-8">
+<div class="flex items-center p-4 justify-between">
+<button class="text-white flex size-12 shrink-0 items-center justify-center rounded-full active:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-3xl">close</span>
+</button>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] drop-shadow-md">Camera Setup</h2>
+<div class="flex w-12 items-center justify-end">
+<button class="flex size-12 cursor-pointer items-center justify-center rounded-full bg-black/20 backdrop-blur-md text-white border border-white/10 active:bg-primary active:text-black transition-all">
+<span class="material-symbols-outlined filled">flash_on</span>
+</button>
+</div>
+</div>
+<!-- Contextual Instructions -->
+<div class="flex flex-col items-center justify-center gap-2 mt-2">
+<div class="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2 shadow-lg">
+<span class="material-symbols-outlined text-primary text-sm">smartphone</span>
+<p class="text-white text-xs sm:text-sm font-medium">Place phone waist-height, 10ft back</p>
+</div>
+</div>
+</div>
+<!-- Center Area (Empty for viewport visibility, or center alignment text) -->
+<div class="flex-1 flex flex-col items-center justify-center">
+<h2 class="text-white/80 tracking-wide text-2xl font-bold drop-shadow-lg text-center opacity-0 animate-[pulse_3s_ease-in-out_infinite]">ALIGN GOLFER HERE</h2>
+</div>
+<!-- Bottom Controls Area -->
+<div class="flex flex-col w-full bg-gradient-to-t from-background-dark via-background-dark/90 to-transparent pt-12 pb-6 px-4">
+<!-- Club Selection Chips -->
+<div class="flex flex-col gap-2 mb-6">
+<div class="flex justify-between items-center px-2 mb-1">
+<span class="text-white/70 text-xs font-bold uppercase tracking-wider">Select Club</span>
+<button class="text-primary text-xs font-bold">Edit Bag</button>
+</div>
+<div class="flex gap-3 overflow-x-auto no-scrollbar pb-2 snap-x">
+<button class="snap-start flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-dark border border-white/10 px-5 transition-all active:scale-95">
+<p class="text-white/70 text-sm font-medium">Driver</p>
+</button>
+<!-- Active State -->
+<button class="snap-start flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary shadow-[0_0_15px_rgba(19,236,91,0.3)] px-6 transition-all active:scale-95">
+<span class="material-symbols-outlined text-black text-sm font-bold">sports_golf</span>
+<p class="text-black text-sm font-bold">7 Iron</p>
+</button>
+<button class="snap-start flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-dark border border-white/10 px-5 transition-all active:scale-95">
+<p class="text-white/70 text-sm font-medium">Wedge</p>
+</button>
+<button class="snap-start flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-surface-dark border border-white/10 px-5 transition-all active:scale-95">
+<p class="text-white/70 text-sm font-medium">Putter</p>
+</button>
+</div>
+</div>
+<!-- Primary Camera Controls -->
+<div class="flex items-center justify-between gap-6 px-2 sm:px-8">
+<!-- Gallery/Last Shot -->
+<button class="flex shrink-0 items-center justify-center rounded-full size-12 bg-surface-dark/80 backdrop-blur-sm border border-white/10 text-white active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-2xl">photo_library</span>
+</button>
+<!-- Record Button -->
+<button class="group flex shrink-0 items-center justify-center rounded-full size-20 border-4 border-white bg-transparent relative active:scale-95 transition-all duration-200">
+<!-- Inner Indicator -->
+<div class="absolute inset-1 rounded-full bg-primary group-hover:bg-[#3bf579] transition-colors shadow-[0_0_20px_rgba(19,236,91,0.5)]"></div>
+<!-- Icon -->
+<span class="material-symbols-outlined relative z-10 text-black text-4xl font-bold">videocam</span>
+</button>
+<!-- Camera Switch / Settings -->
+<button class="flex shrink-0 items-center justify-center rounded-full size-12 bg-surface-dark/80 backdrop-blur-sm border border-white/10 text-white active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-2xl">flip_camera_ios</span>
+</button>
+</div>
+<!-- Helper Text -->
+<p class="text-[#9db9a6] text-xs font-normal mt-6 text-center">Tap to start or say "Hey Coach, Record"</p>
+</div>
+</div>
+</body></html>

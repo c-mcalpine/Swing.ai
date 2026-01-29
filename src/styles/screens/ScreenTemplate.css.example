@@ -1,0 +1,62 @@
+/**
+ * SCREEN TEMPLATE CSS
+ * 
+ * Copy this file when creating a new screen.
+ * Replace "screen-template" with your screen's class name (e.g., "home-screen")
+ * 
+ * Use BEM naming convention:
+ * - Block: .screen-template
+ * - Element: .screen-template__header
+ * - Modifier: .screen-template--loading
+ */
+
+/* Main container */
+.screen-template {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background);
+}
+
+/* Loading state */
+.screen-template--loading {
+  align-items: center;
+  justify-content: center;
+}
+
+/* Header */
+.screen-template__header {
+  padding: var(--spacing-lg);
+  background-color: var(--background);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.screen-template__header h1 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+/* Main content */
+.screen-template__content {
+  flex: 1;
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+}
+
+/* Footer */
+.screen-template__footer {
+  padding: var(--spacing-lg);
+  background-color: var(--background);
+  border-top: 1px solid var(--border-color);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .screen-template__header,
+  .screen-template__content,
+  .screen-template__footer {
+    padding: var(--spacing-md);
+  }
+}
+
