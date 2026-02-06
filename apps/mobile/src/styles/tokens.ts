@@ -38,6 +38,17 @@ export const colors = {
   textSecondary: '#9ca3af',
   textTertiary: '#6b7280',
   textDisabled: '#4b5563',
+  
+  // Nested text object for compatibility
+  text: {
+    primary: '#ffffff',
+    secondary: '#9ca3af',
+    tertiary: '#6b7280',
+    disabled: '#4b5563',
+  },
+  
+  // Card background
+  card: '#1c3024',
 };
 
 export const spacing = {
