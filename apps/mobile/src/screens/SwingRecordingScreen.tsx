@@ -1,61 +1,157 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  ImageBackground,
   ScrollView,
   SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { IconButton, FilterChip } from '@/components';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
+import { useSwingCapture } from '@/hooks/useSwingCapture';
 
 type SwingRecordingScreenNavigationProp = NativeStackNavigationProp<
   AppStackParamList,
   'SwingRecording'
 >;
 
+type SwingRecordingScreenRouteProp = RouteProp<AppStackParamList, 'SwingRecording'>;
+
 /**
  * Swing Recording Screen - Live camera interface for recording swings
- * Matches web design exactly
+ * Integrated with computer vision pipeline
  */
 export function SwingRecordingScreen() {
   const navigation = useNavigation<SwingRecordingScreenNavigationProp>();
-  const [selectedClub, setSelectedClub] = useState('7 Iron');
+  const route = useRoute<SwingRecordingScreenRouteProp>();
+  const cameraRef = useRef<CameraView>(null);
+  
+  const [selectedClub, setSelectedClub] = useState(route.params?.club || '7 Iron');
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [facing, setFacing] = useState<CameraType>('back');
+  const [permission, requestPermission] = useCameraPermissions();
+  
+  const { state, progress, error, captureId, processCapture, reset } = useSwingCapture();
 
   const clubs = ['Driver', '7 Iron', 'Wedge', 'Putter'];
 
-  const handleClose = () => {
-    navigation.goBack();
-  };
+  // Request camera permission on mount
+  useEffect(() => {
+    if (permission && !permission.granted) {
+      requestPermission();
+    }
+  }, [permission]);
 
-  const handleRecord = () => {
-    if (!isRecording) {
-      setIsRecording(true);
-      // Simulate recording for 3 seconds then navigate to analysis
-      setTimeout(() => {
-        setIsRecording(false);
-        // @ts-ignore
-        navigation.navigate('Analysis');
-      }, 3000);
+  // Navigate to analysis when processing completes
+  useEffect(() => {
+    if (state === 'success' && captureId) {
+      navigation.navigate('Analysis', { captureId });
+    }
+  }, [state, captureId]);
+
+  // Show error alert
+  useEffect(() => {
+    if (state === 'error' && error) {
+      Alert.alert('Capture Failed', error, [
+        { text: 'OK', onPress: reset },
+      ]);
+    }
+  }, [state, error]);
+
+  const handleClose = () => {
+    if (isRecording) {
+      Alert.alert('Recording in progress', 'Stop recording before closing?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Stop',
+          onPress: () => {
+            setIsRecording(false);
+            navigation.goBack();
+          },
+        },
+      ]);
+    } else {
+      navigation.goBack();
     }
   };
 
+  const handleRecord = async () => {
+    if (!cameraRef.current) return;
+
+    if (!isRecording) {
+      try {
+        setIsRecording(true);
+        const video = await cameraRef.current.recordAsync({
+          maxDuration: 5, // 5 seconds max
+        });
+
+        setIsRecording(false);
+
+        if (video) {
+          // Process the captured video (duration will be auto-detected)
+          await processCapture(video.uri, null, {
+            club: selectedClub,
+            generateOverlays: true,
+          });
+        }
+      } catch (err: any) {
+        console.error('Recording failed:', err);
+        setIsRecording(false);
+        Alert.alert('Recording Failed', err.message || 'Failed to record video');
+      }
+    } else {
+      // Stop recording
+      cameraRef.current.stopRecording();
+      setIsRecording(false);
+    }
+  };
+
+  const toggleCameraFacing = () => {
+    setFacing((current) => (current === 'back' ? 'front' : 'back'));
+  };
+
+  // Show permission request if not granted
+  if (!permission) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.permissionContainer}>
+          <Text style={styles.permissionText}>
+            Camera permission is required to record swings
+          </Text>
+          <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* Camera Feed Background */}
-      <ImageBackground
-        source={{
-          uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAENAjfy_lnlT_rlk7YRFNAAJRTbJuifB2k5VE-s097QbtFovF-nIK_aFgyoBz1ceZmVhvWcoz8wE9huR3ZJ2LPTL2ouazRbxwMeGZoSSE5N33-aOla9yCSIHXYy-xESyIXuELb3dqk_iUYJtQKRnM_E75PmtLyhkbbyw_2uaSTt85WEj_SbboDvDh0H0yQIjggFu8NAwr4FVou8acGAvuamk_hi_JLNOqrtvGAWNH5SUuCvJXn8hlixqmoLTAPQZtZ-0mC7b6bjXQ',
-        }}
+      {/* Camera Feed */}
+      <CameraView
+        ref={cameraRef}
         style={styles.cameraFeed}
-        imageStyle={styles.cameraFeedImage}
+        facing={facing}
+        mode="video"
+        enableTorch={flashEnabled}
       >
         <View style={styles.cameraOverlay} />
 
@@ -71,7 +167,7 @@ export function SwingRecordingScreen() {
           <View style={[styles.gridLine, styles.gridLineV1]} />
           <View style={[styles.gridLine, styles.gridLineV2]} />
         </View>
-      </ImageBackground>
+      </CameraView>
 
       {/* UI Overlay */}
       <View style={styles.uiOverlay}>
@@ -173,7 +269,7 @@ export function SwingRecordingScreen() {
               <Text style={styles.recordBtnIcon}>📹</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.controlBtn}>
+            <TouchableOpacity style={styles.controlBtn} onPress={toggleCameraFacing}>
               <Text style={styles.controlBtnIcon}>🔄</Text>
             </TouchableOpacity>
           </View>
@@ -182,6 +278,28 @@ export function SwingRecordingScreen() {
           <Text style={styles.helperText}>Tap to start or say "Hey Coach, Record"</Text>
         </View>
       </View>
+
+      {/* Processing Modal */}
+      <Modal visible={state === 'processing'} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.modalTitle}>Processing Swing</Text>
+            <Text style={styles.modalStage}>{progress.stage}</Text>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${progress.percent * 100}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.modalPercent}>
+              {Math.round(progress.percent * 100)}%
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -477,5 +595,78 @@ const styles = StyleSheet.create({
     color: '#9db9a6',
     fontSize: 12,
     textAlign: 'center',
+  },
+
+  // Permission Screen
+  permissionContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 24,
+  },
+  permissionText: {
+    color: colors.white,
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  permissionButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+  },
+  permissionButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  // Processing Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 32,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    gap: 16,
+  },
+  modalTitle: {
+    color: colors.white,
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 8,
+  },
+  modalStage: {
+    color: colors.text.secondary,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+  },
+  modalPercent: {
+    color: colors.text.secondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

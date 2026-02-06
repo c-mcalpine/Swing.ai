@@ -57,24 +57,35 @@ Deno.serve(async (req) => {
       return json({ error: "no_frames" }, 400);
     }
 
-    // 3) Signed URLs for frames (prefer overlay if available, else raw)
+    // 3) Signed URLs for frames: ONE image per frame (overlay > frame)
+    //    Filter to key phases only to reduce LLM cost/latency
+    const KEY_PHASES = ["address", "top", "impact", "follow_through"];
+    const keyFrames = frames.filter((f: any) => KEY_PHASES.includes(f.phase));
+    
     const signedImages: Array<{ phase: string; url: string; kind: "overlay" | "frame" }> = [];
 
-    for (const f of frames) {
+    for (const f of keyFrames) {
       const overlayPath = f.overlay_path as string | null;
       const framePath = f.frame_path as string;
 
+      // Prefer overlay if available
       if (overlayPath) {
         const { data: s1, error: e1 } = await supabase.storage
           .from("swing-overlays")
           .createSignedUrl(overlayPath, 60 * 10);
-        if (!e1 && s1?.signedUrl) signedImages.push({ phase: f.phase, url: s1.signedUrl, kind: "overlay" });
+        if (!e1 && s1?.signedUrl) {
+          signedImages.push({ phase: f.phase, url: s1.signedUrl, kind: "overlay" });
+          continue; // Use overlay, skip frame
+        }
       }
 
+      // Fallback to frame
       const { data: s2, error: e2 } = await supabase.storage
         .from("swing-frames")
         .createSignedUrl(framePath, 60 * 10);
-      if (!e2 && s2?.signedUrl) signedImages.push({ phase: f.phase, url: s2.signedUrl, kind: "frame" });
+      if (!e2 && s2?.signedUrl) {
+        signedImages.push({ phase: f.phase, url: s2.signedUrl, kind: "frame" });
+      }
     }
 
     // 4) Build input fingerprint for reproducibility tracking

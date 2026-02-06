@@ -31,7 +31,7 @@ export type AppStackParamList = {
   QuickDrills: undefined;
   DrillDetails: { drillId: number };
   InitialSwingSetup: undefined;
-  SwingRecording: undefined;
+  SwingRecording: { club?: string }; // Optional club parameter
   SwingDiagnosticView: { diagnosticId?: number };
 };
 
