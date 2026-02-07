@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["PoseExtractorModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.poseextractor.PoseExtractorModule"]
+  }
+}
