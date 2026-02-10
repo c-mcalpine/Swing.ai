@@ -1,6 +1,6 @@
 import { PoseLandmark } from '../types/pose';
 import { Platform } from 'react-native';
-import PoseExtractorModule from '../../../../modules/pose-extractor/src';
+import PoseExtractorModule from 'pose-extractor';
 
 /**
  * Pose detection result for a single frame

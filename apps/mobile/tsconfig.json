@@ -13,7 +13,8 @@
       "@/lib/*": ["src/lib/*"],
       "@/screens/*": ["src/screens/*"],
       "@/styles/*": ["src/styles/*"],
-      "@/utils/*": ["src/utils/*"]
+      "@/utils/*": ["src/utils/*"],
+      "pose-extractor": ["modules/pose-extractor/src"]
     }
   }
 }

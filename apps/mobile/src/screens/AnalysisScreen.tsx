@@ -30,14 +30,19 @@ export function AnalysisScreen() {
   const route = useRoute<AnalysisScreenRouteProp>();
   const { captureId } = route.params || {};
 
-  const { data, loading, error } = useSwingAnalysisData(captureId);
+  const { data, loading, analyzing, error, timedOut, retryAnalysis } = useSwingAnalysisData(captureId);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  if (loading) {
+  if (loading || analyzing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading analysis...</Text>
+        <Text style={styles.loadingText}>
+          {analyzing ? 'Analyzing your swing...' : 'Loading analysis...'}
+        </Text>
+        <Text style={styles.loadingSubtext}>
+          {analyzing ? 'This usually takes 10-30 seconds' : ''}
+        </Text>
       </View>
     );
   }
@@ -46,9 +51,20 @@ export function AnalysisScreen() {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error || 'Analysis not found'}</Text>
-        <Button variant="secondary" onPress={() => navigation.goBack()}>
-          Go Back
-        </Button>
+        {timedOut && (
+          <Button 
+            label="Retry Analysis" 
+            variant="primary" 
+            onPress={retryAnalysis}
+            style={{ marginTop: 16 }}
+          />
+        )}
+        <Button 
+          label="Go Back"
+          variant="secondary" 
+          onPress={() => navigation.goBack()}
+          style={{ marginTop: 8 }}
+        />
       </View>
     );
   }
@@ -365,10 +381,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.background,
+    gap: 16,
   },
   loadingText: {
-    marginTop: spacing.md,
-    fontSize: typography.fontSize.md,
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
     color: colors.textSecondary,
   },
   errorContainer: {

@@ -1,9 +1,96 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { edgeFunctions, EdgeFunctionError } from '@/api/edge';
 
 /**
- * Hook for smart review system (spaced repetition)
- * Frontend stays dumb - all scheduling logic happens server-side
+ * Hook to fetch smart review plan
+ */
+export function useSmartReviewPlan(
+  budgetMin: number = 10,
+  environment: string | null = null
+) {
+  const [plan, setPlan] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(
+    async (budget?: number, env?: string | null) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const result = await edgeFunctions.getSmartReviewPlan({
+          budget_min: budget || budgetMin,
+          environment: env === undefined ? environment : env,
+          include_lessons: true,
+        });
+        setPlan(result);
+        setLoading(false);
+        return result;
+      } catch (err: any) {
+        const edgeError = err as EdgeFunctionError;
+        setError(edgeError.message || edgeError.error || 'Failed to load plan');
+        setLoading(false);
+        throw err;
+      }
+    },
+    [budgetMin, environment]
+  );
+
+  return {
+    plan,
+    loading,
+    error,
+    refetch,
+  };
+}
+
+/**
+ * Hook to submit review completion
+ */
+export function useSubmitReviewResult() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (params: {
+    item_type: 'drill' | 'lesson';
+    item_id: number;
+    score: number;
+    issue_slug?: string | null;
+    duration_min?: number | null;
+  }) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Generate client-side idempotency key
+      const timestamp = Date.now();
+      const clientEventId = `${params.item_type}-${params.item_id}-${timestamp}`;
+
+      const result = await edgeFunctions.submitReviewResult({
+        ...params,
+        client_event_id: clientEventId,
+      });
+
+      setLoading(false);
+      return result;
+    } catch (err: any) {
+      const edgeError = err as EdgeFunctionError;
+      setError(edgeError.message || edgeError.error || 'Failed to submit result');
+      setLoading(false);
+      throw err;
+    }
+  };
+
+  return {
+    submit,
+    loading,
+    error,
+  };
+}
+
+/**
+ * Legacy hook for smart review system (spaced repetition)
+ * @deprecated Use useSmartReviewPlan and useSubmitReviewResult instead
  */
 export function useSmartReview() {
   const [loading, setLoading] = useState(false);

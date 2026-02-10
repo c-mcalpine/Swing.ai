@@ -29,7 +29,6 @@ import {
   cleanupOverlays,
 } from './overlay/renderOverlay';
 import { uploadCaptureArtifacts } from './upload/uploadArtifacts';
-import { insertCompleteCapture } from './database/insertCapture';
 import {
   PoseSummaryV1,
   KeyframeData,
@@ -116,6 +115,7 @@ export class CaptureCoordinator {
 
     // Track temp files for cleanup
     const tempFiles: string[] = [];
+    let captureId: number | null = null;
 
     try {
       // Stage 0: Get real video duration if not provided
@@ -157,8 +157,12 @@ export class CaptureCoordinator {
         }
       }
 
-      if (keyframeData.length === 0) {
-        throw new Error('No poses detected in video. Please ensure the golfer is visible.');
+      // Phase 8 exit: ≥8/10 frames with valid pose (or 80% of extracted frames)
+      const minPoseFrames = Math.max(1, Math.ceil(keyframes.length * 0.8));
+      if (keyframeData.length < minPoseFrames) {
+        throw new Error(
+          `Too few poses detected (${keyframeData.length}/${keyframes.length} frames). Need at least ${minPoseFrames}. Ensure the golfer is fully visible.`
+        );
       }
 
       // Stage 3: Tag swing phases
@@ -220,7 +224,7 @@ export class CaptureCoordinator {
       // Stage 7: Insert capture record with idempotency (gets capture_id)
       onProgress?.('Creating capture record', 0.77);
       const { insertSwingCapture } = await import('./database/insertCapture');
-      const captureId = await insertSwingCapture(userId, clientCaptureId, poseSummary, club);
+      captureId = await insertSwingCapture(userId, clientCaptureId, poseSummary, club);
 
       // Stage 8: Upload artifacts (idempotent via client_capture_id paths)
       onProgress?.('Uploading frames', 0.8);
@@ -257,14 +261,20 @@ export class CaptureCoordinator {
       return captureId;
     } catch (error) {
       console.error('Swing capture processing failed:', error);
-      
+
+      // If we already inserted a capture row, mark it failed so no orphan with missing frames
+      if (captureId != null) {
+        const { markCaptureFailed } = await import('./database/insertCapture');
+        await markCaptureFailed(captureId);
+      }
+
       // Clean up temp files even on error
       try {
         await this.cleanupTempFiles(tempFiles);
       } catch (cleanupError) {
         console.warn('Failed to cleanup temp files after error:', cleanupError);
       }
-      
+
       throw error;
     }
   }

@@ -148,27 +148,16 @@ export async function insertSwingFrames(
 }
 
 /**
- * Complete capture insertion (capture + frames)
- * 
- * @param userId - User ID
- * @param poseSummary - Pose summary
- * @param keyframes - Keyframe data
- * @param uploadedArtifacts - Uploaded artifacts
- * @param club - Club used (optional)
- * @returns Inserted capture ID
+ * Mark a capture as failed (e.g. after upload or frame insert failure).
+ * Ensures no orphan capture rows stay in 'uploaded' with missing frames.
  */
-export async function insertCompleteCapture(
-  userId: string,
-  poseSummary: PoseSummaryV1,
-  keyframes: KeyframeData[],
-  uploadedArtifacts: UploadedArtifacts,
-  club?: string
-): Promise<number> {
-  // Insert capture
-  const captureId = await insertSwingCapture(userId, poseSummary, club);
-
-  // Insert frames
-  await insertSwingFrames(captureId, keyframes, uploadedArtifacts);
-
-  return captureId;
+export async function markCaptureFailed(captureId: number): Promise<void> {
+  try {
+    await supabase
+      .from('swing_capture')
+      .update({ status: 'failed' })
+      .eq('id', captureId);
+  } catch (err) {
+    console.error('Failed to mark capture as failed:', err);
+  }
 }

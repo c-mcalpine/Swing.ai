@@ -155,11 +155,14 @@ export async function uploadOverlays(
  * 
  * Uses client_capture_id for idempotent upload paths that can be safely retried.
  * 
+ * FAIL-FAST: Throws if ANY required upload fails. This ensures frame rows
+ * are only inserted if all artifacts are successfully uploaded.
+ * 
  * @param userId - User ID
  * @param clientCaptureId - Client capture UUID
  * @param keyframes - Keyframe data with URIs
  * @param overlays - Overlay data with URIs (optional)
- * @returns Complete upload results
+ * @returns Complete upload results (guaranteed all uploads succeeded)
  */
 export async function uploadCaptureArtifacts(
   userId: string,
@@ -167,13 +170,27 @@ export async function uploadCaptureArtifacts(
   keyframes: Array<{ uri: string; timestamp_ms: number }>,
   overlays?: Array<{ uri: string; timestamp_ms: number }>
 ): Promise<UploadedArtifacts> {
-  // Upload keyframes
+  // Upload keyframes (will throw on failure)
   const framePaths = await uploadKeyframes(userId, clientCaptureId, keyframes);
 
-  // Upload overlays if provided
+  // Validate all frames uploaded
+  if (framePaths.length !== keyframes.length) {
+    throw new Error(
+      `Frame upload incomplete: expected ${keyframes.length}, got ${framePaths.length}`
+    );
+  }
+
+  // Upload overlays if provided (will throw on failure)
   const overlayPaths = overlays
     ? await uploadOverlays(userId, clientCaptureId, overlays)
     : [];
+
+  // Validate all overlays uploaded (if overlays were requested)
+  if (overlays && overlayPaths.length !== overlays.length) {
+    throw new Error(
+      `Overlay upload incomplete: expected ${overlays.length}, got ${overlayPaths.length}`
+    );
+  }
 
   return {
     framePaths,

@@ -6,11 +6,13 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button, IconButton, VideoPlayer } from '@/components';
 import { useSwingTaxonomy } from '@/hooks/useTaxonomy';
+import { useSubmitReviewResult } from '@/hooks/useSmartReview';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
 
@@ -28,10 +30,13 @@ export function DailyLessonScreen() {
   const navigation = useNavigation<DailyLessonScreenNavigationProp>();
   const route = useRoute<DailyLessonScreenRouteProp>();
   const lessonId = (route.params as any)?.lessonId;
+  const fromSmartReview = (route.params as any)?.fromSmartReview;
+  const reviewItem = (route.params as any)?.reviewItem;
 
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [progress, setProgress] = useState(35);
   const { data: taxonomy, loading, error } = useSwingTaxonomy();
+  const { submit: submitReview, loading: submitting } = useSubmitReviewResult();
 
   // Get the lesson from taxonomy (use first lesson if no ID provided)
   const lesson = useMemo(() => {
@@ -79,11 +84,51 @@ export function DailyLessonScreen() {
     xpReward: 50,
   };
 
-  const handleComplete = () => {
-    // Mark lesson complete and navigate
-    console.log('Lesson completed! +50 XP');
-    // @ts-ignore
-    navigation.navigate('PersonalizedPlan');
+  const handleComplete = async () => {
+    // If from Smart Review, submit the completion
+    if (fromSmartReview && reviewItem) {
+      // Calculate score based on progress (0-1 scale)
+      const score = progress / 100;
+
+      // Use lesson duration if available
+      const durationMin = lesson?.duration_min || 10;
+
+      try {
+        const result = await submitReview({
+          item_type: reviewItem.item_type,
+          item_id: reviewItem.item_id,
+          score,
+          issue_slug: reviewItem.issue_slug,
+          duration_min: durationMin,
+        });
+
+        // Show success feedback
+        if (result.next_schedule) {
+          const nextDays = Math.round(result.next_schedule.interval_days);
+          Alert.alert(
+            'Lesson Complete!',
+            `Great work! +${result.xp_awarded} XP\n\nNext review in ${nextDays} day${nextDays === 1 ? '' : 's'}.`,
+            [
+              {
+                text: 'Continue',
+                onPress: () => navigation.navigate('Review'),
+              },
+            ]
+          );
+        } else {
+          Alert.alert('Already Completed', 'You already completed this today.', [
+            { text: 'OK', onPress: () => navigation.navigate('Review') },
+          ]);
+        }
+      } catch (error: any) {
+        Alert.alert('Error', error.message || 'Failed to submit review');
+      }
+    } else {
+      // Regular lesson completion (not from Smart Review)
+      console.log('Lesson completed! +50 XP');
+      // @ts-ignore
+      navigation.navigate('PersonalizedPlan');
+    }
   };
 
   return (
@@ -246,10 +291,13 @@ export function DailyLessonScreen() {
             size="large"
             fullWidth
             onPress={handleComplete}
+            disabled={submitting}
           >
             <View style={styles.completeBtnContent}>
               <Text style={styles.completeBtnIcon}>✓</Text>
-              <Text style={styles.completeBtnText}>MARK COMPLETE</Text>
+              <Text style={styles.completeBtnText}>
+                {submitting ? 'SUBMITTING...' : 'MARK COMPLETE'}
+              </Text>
               <View style={styles.xpBadge}>
                 <Text style={styles.xpBadgeText}>+{lessonData.xpReward} XP</Text>
               </View>

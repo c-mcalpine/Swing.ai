@@ -40,10 +40,16 @@ public class PoseExtractorModule: Module {
         )
       }
       
-      // Handle file:// URIs
-      let cleanUri = imageUri.replacingOccurrences(of: "file://", with: "")
-      guard let url = URL(fileURLWithPath: cleanUri) as URL?,
-            let imageData = try? Data(contentsOf: url),
+      // Parse file URI robustly (handles file://, file:///, file://localhost/, etc.)
+      let url: URL
+      if let parsed = URL(string: imageUri), parsed.isFileURL {
+        url = parsed
+      } else {
+        url = URL(fileURLWithPath: imageUri)
+      }
+      
+      // Load image data
+      guard let imageData = try? Data(contentsOf: url),
             let uiImage = UIImage(data: imageData) else {
         throw NSError(
           domain: "PoseExtractorModule",
@@ -73,7 +79,7 @@ public class PoseExtractorModule: Module {
           "x": landmark.x,
           "y": landmark.y,
           "z": landmark.z,
-          "visibility": landmark.visibility?.floatValue ?? 0.0
+          "visibility": landmark.visibility ?? 0.0
         ]
       }
       

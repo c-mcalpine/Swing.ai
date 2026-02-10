@@ -297,8 +297,22 @@ export function ReviewScreen() {
                 style={styles.startBtn}
                 onPress={() => {
                   if (upNextLesson.item) {
-                    // Navigate to lesson or drill (placeholder)
-                    console.log('Start review:', upNextLesson.item);
+                    const item = upNextLesson.item;
+                    if (item.item_type === 'lesson') {
+                      // @ts-ignore
+                      navigation.navigate('DailyLesson', {
+                        lessonId: item.item_id,
+                        fromSmartReview: true,
+                        reviewItem: item,
+                      });
+                    } else {
+                      // @ts-ignore
+                      navigation.navigate('DrillDetails', {
+                        drillId: item.item_id,
+                        fromSmartReview: true,
+                        reviewItem: item,
+                      });
+                    }
                   }
                 }}
                 disabled={planLoading || !upNextLesson.item}
@@ -393,7 +407,22 @@ export function ReviewScreen() {
                     style={styles.drillAction}
                     onPress={() => {
                       if (drill.item) {
-                        console.log('Start drill:', drill.item);
+                        const item = drill.item;
+                        if (item.item_type === 'lesson') {
+                          // @ts-ignore
+                          navigation.navigate('DailyLesson', {
+                            lessonId: item.item_id,
+                            fromSmartReview: true,
+                            reviewItem: item,
+                          });
+                        } else {
+                          // @ts-ignore
+                          navigation.navigate('DrillDetails', {
+                            drillId: item.item_id,
+                            fromSmartReview: true,
+                            reviewItem: item,
+                          });
+                        }
                       }
                     }}
                   >

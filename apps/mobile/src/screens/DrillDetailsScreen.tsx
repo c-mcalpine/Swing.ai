@@ -6,10 +6,12 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { IconButton, MetaTag, VideoPlayer, Button } from '@/components';
+import { useSubmitReviewResult } from '@/hooks/useSmartReview';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
 
@@ -34,9 +36,12 @@ export function DrillDetailsScreen() {
   const navigation = useNavigation<DrillDetailsScreenNavigationProp>();
   const route = useRoute<DrillDetailsScreenRouteProp>();
   const drillId = (route.params as any)?.drillId;
+  const fromSmartReview = (route.params as any)?.fromSmartReview;
+  const reviewItem = (route.params as any)?.reviewItem;
 
   const [reps, setReps] = useState(0);
   const goalReps = 10;
+  const { submit: submitReview, loading: submitting } = useSubmitReviewResult();
 
   const drillData = {
     title: 'The Gate Drill',
@@ -237,17 +242,31 @@ export function DrillDetailsScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Record Button */}
-              <Button
-                variant="primary"
-                size="large"
-                onPress={handleRecordSwing}
-                icon="📹"
-                iconPosition="left"
-                style={styles.recordBtn}
-              >
-                Record Swing
-              </Button>
+              {/* Action Buttons */}
+              {fromSmartReview ? (
+                <Button
+                  variant="primary"
+                  size="large"
+                  onPress={handleMarkComplete}
+                  icon="✓"
+                  iconPosition="left"
+                  style={styles.recordBtn}
+                  disabled={reps === 0 || submitting}
+                >
+                  {submitting ? 'Submitting...' : 'Mark Complete'}
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="large"
+                  onPress={handleRecordSwing}
+                  icon="📹"
+                  iconPosition="left"
+                  style={styles.recordBtn}
+                >
+                  Record Swing
+                </Button>
+              )}
             </View>
           </View>
         </View>

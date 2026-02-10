@@ -241,33 +241,44 @@ CREATE TABLE public.profiles (
   CONSTRAINT profiles_pkey PRIMARY KEY (user_id),
   CONSTRAINT profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
+CREATE TABLE public.review_completion (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['drill'::text, 'lesson'::text])),
+  item_id bigint NOT NULL,
+  issue_slug text,
+  score numeric NOT NULL,
+  duration_min integer,
+  occurred_at timestamp with time zone NOT NULL DEFAULT now(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  completion_day date DEFAULT ((occurred_at AT TIME ZONE 'UTC'::text))::date,
+  client_event_id text UNIQUE,
+  CONSTRAINT review_completion_pkey PRIMARY KEY (id),
+  CONSTRAINT review_completion_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT review_completion_issue_slug_fkey FOREIGN KEY (issue_slug) REFERENCES public.swing_error(slug)
+);
 CREATE TABLE public.swing_analysis (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   capture_id bigint NOT NULL UNIQUE,
   user_id uuid NOT NULL,
-  -- Versioning fields for reproducibility
-  model text NOT NULL,                              -- e.g., "gpt-5.2-mini"
-  prompt_version text NOT NULL DEFAULT '1',         -- bump when prompt changes
-  schema_version text NOT NULL DEFAULT '1',         -- bump when output schema changes
-  input_fingerprint text,                           -- hash of frame ids + overlays + pose version
-  -- Analysis results
+  model_version text NOT NULL DEFAULT 'v1'::text,
   raw_json jsonb NOT NULL,
   issue_scores jsonb NOT NULL DEFAULT '{}'::jsonb,
-  issue_confidence jsonb NOT NULL DEFAULT '{}'::jsonb, -- per-issue confidence scores
   mechanic_scores jsonb NOT NULL DEFAULT '{}'::jsonb,
   club_angle_refs jsonb NOT NULL DEFAULT '{}'::jsonb,
-  overall_confidence numeric,                       -- 0..1 overall analysis confidence
   recommended_lesson_ids ARRAY,
   recommended_drill_ids ARRAY,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  model text NOT NULL,
+  prompt_version text DEFAULT '1'::text,
+  schema_version text DEFAULT '1'::text,
+  input_fingerprint text,
+  issue_confidence jsonb DEFAULT '{}'::jsonb,
+  overall_confidence numeric,
   CONSTRAINT swing_analysis_pkey PRIMARY KEY (id),
   CONSTRAINT swing_analysis_capture_id_fkey FOREIGN KEY (capture_id) REFERENCES public.swing_capture(id),
   CONSTRAINT swing_analysis_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-
--- Index for querying by model/version for analysis comparisons
-CREATE INDEX IF NOT EXISTS swing_analysis_version_idx 
-ON public.swing_analysis(model, prompt_version, schema_version);
 CREATE TABLE public.swing_capture (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   user_id uuid NOT NULL,
@@ -277,6 +288,7 @@ CREATE TABLE public.swing_capture (
   pose_summary jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  client_capture_id uuid NOT NULL DEFAULT gen_random_uuid(),
   CONSTRAINT swing_capture_pkey PRIMARY KEY (id),
   CONSTRAINT swing_capture_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -315,6 +327,7 @@ CREATE TABLE public.swing_frame (
   frame_path text NOT NULL,
   overlay_path text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  pose_data jsonb,
   CONSTRAINT swing_frame_pkey PRIMARY KEY (id),
   CONSTRAINT swing_frame_capture_id_fkey FOREIGN KEY (capture_id) REFERENCES public.swing_capture(id)
 );
@@ -415,58 +428,6 @@ CREATE TABLE public.user_lesson_progress (
   CONSTRAINT user_lesson_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT user_lesson_progress_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.lesson(id)
 );
-CREATE TABLE public.review_completion (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  user_id uuid NOT NULL,
-  item_type text NOT NULL,
-  item_id bigint NOT NULL,
-  issue_slug text,
-  score numeric NOT NULL CHECK (score >= 0 AND score <= 1),
-  duration_min integer,
-  client_event_id text UNIQUE,
-  completion_fingerprint text NOT NULL,
-  occurred_at timestamp with time zone NOT NULL DEFAULT now(),
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT review_completion_pkey PRIMARY KEY (id),
-  CONSTRAINT review_completion_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
-  -- Semantic de-dupe: one completion per day per item per user
-  CONSTRAINT review_completion_fingerprint_unique UNIQUE (user_id, item_type, item_id, completion_fingerprint)
-);
-
--- Note: completion_fingerprint should be YYYY-MM-DD format (day bucket)
--- This ensures one completion per day per item per user
-
--- Index for fast fingerprint lookups
-CREATE INDEX IF NOT EXISTS review_completion_fingerprint_idx 
-ON public.review_completion(completion_fingerprint);
-
--- Index for client_event_id lookups
-CREATE INDEX IF NOT EXISTS review_completion_client_event_id_idx 
-ON public.review_completion(client_event_id) 
-WHERE client_event_id IS NOT NULL;
-
-CREATE TABLE public.user_review_item (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  user_id uuid NOT NULL,
-  item_type text NOT NULL,
-  item_id bigint NOT NULL,
-  issue_slug text,
-  interval_days integer NOT NULL DEFAULT 1,
-  ease numeric NOT NULL DEFAULT 2.2,
-  success_streak integer NOT NULL DEFAULT 0,
-  fail_count integer NOT NULL DEFAULT 0,
-  reps integer NOT NULL DEFAULT 0,
-  due_at timestamp with time zone NOT NULL,
-  last_reviewed_at timestamp with time zone,
-  last_score numeric,
-  is_active boolean NOT NULL DEFAULT true,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT user_review_item_pkey PRIMARY KEY (id),
-  CONSTRAINT user_review_item_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
-  CONSTRAINT user_review_item_unique UNIQUE (user_id, item_type, item_id)
-);
-
 CREATE TABLE public.user_review_event (
   id bigint NOT NULL DEFAULT nextval('user_review_event_id_seq'::regclass),
   user_id uuid NOT NULL,
@@ -480,6 +441,27 @@ CREATE TABLE public.user_review_event (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT user_review_event_pkey PRIMARY KEY (id),
   CONSTRAINT user_review_event_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.user_review_item (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['drill'::text, 'lesson'::text])),
+  item_id bigint NOT NULL,
+  issue_slug text,
+  due_at timestamp with time zone NOT NULL DEFAULT now(),
+  last_reviewed_at timestamp with time zone,
+  interval_days numeric NOT NULL DEFAULT 1,
+  ease numeric NOT NULL DEFAULT 2.2,
+  reps integer NOT NULL DEFAULT 0,
+  success_streak integer NOT NULL DEFAULT 0,
+  fail_count integer NOT NULL DEFAULT 0,
+  last_score numeric,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_review_item_pkey PRIMARY KEY (id),
+  CONSTRAINT user_review_item_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT user_review_item_issue_slug_fkey FOREIGN KEY (issue_slug) REFERENCES public.swing_error(slug)
 );
 CREATE TABLE public.weekly_xp_user (
   week_start timestamp with time zone NOT NULL,
@@ -496,16 +478,9 @@ CREATE TABLE public.xp_event (
   source_id bigint,
   reason text,
   xp integer NOT NULL CHECK (xp >= 0),
-  idempotency_key text UNIQUE,
   occurred_at timestamp with time zone NOT NULL DEFAULT now(),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  idempotency_key text UNIQUE,
   CONSTRAINT xp_event_pkey PRIMARY KEY (id),
   CONSTRAINT xp_event_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
-
--- Idempotency key patterns:
--- capture:<captureId>              - XP for capturing a swing
--- analysis:<captureId>             - XP for completing analysis
--- challenge_complete:<progressId>  - XP for challenge completion
--- drill_complete:<assignmentId>    - XP for drill completion
--- lesson_complete:<progressId>     - XP for lesson completion
