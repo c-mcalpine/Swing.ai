@@ -392,8 +392,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-    color: colors.textSecondary,
-  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -561,7 +559,7 @@ const styles = StyleSheet.create({
   videoCard: {
     position: 'relative',
     width: '100%',
-    aspectRatio: 16 / 9,
+    aspectRatio: (16 / 9) as any,
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 24,

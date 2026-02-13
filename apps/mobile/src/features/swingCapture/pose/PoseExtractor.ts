@@ -1,5 +1,4 @@
 import { PoseLandmark } from '../types/pose';
-import { Platform } from 'react-native';
 import PoseExtractorModule from 'pose-extractor';
 
 /**
@@ -8,7 +7,7 @@ import PoseExtractorModule from 'pose-extractor';
 export interface PoseDetectionResult {
   landmarks: PoseLandmark[];
   confidence: number;
-  worldLandmarks?: PoseLandmark[]; // Not used on iOS
+  worldLandmarks?: PoseLandmark[];
 }
 
 /**
@@ -25,6 +24,8 @@ export interface IPoseExtractor {
  * 
  * Uses MediaPipe Tasks Vision Pod on iOS via Expo Module.
  * Detects 33 pose landmarks on still images.
+ * 
+ * Note: This app is iOS-only.
  */
 export class NativeIOSPoseExtractor implements IPoseExtractor {
   private initialized = false;
@@ -75,15 +76,9 @@ export class NativeIOSPoseExtractor implements IPoseExtractor {
 /**
  * Factory function to create pose extractor
  * 
- * Returns native iOS implementation on iOS, mock on other platforms.
+ * Returns native iOS MediaPipe implementation.
+ * Note: This app is iOS-only.
  */
 export function createPoseExtractor(): IPoseExtractor {
-  if (Platform.OS === 'ios') {
-    return new NativeIOSPoseExtractor();
-  }
-  
-  // Android/other: use mock for now
-  const { MockPoseExtractor } = require('./MockPoseExtractor');
-  console.warn('[PoseExtractor] Using MockPoseExtractor on non-iOS platform');
-  return new MockPoseExtractor();
+  return new NativeIOSPoseExtractor();
 }
