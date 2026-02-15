@@ -1,30 +1,30 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "Dialed",
     "slug": "mobile",
     "scheme": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/Dialed Logo.png",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/Dialed Logo Transparent.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.christianmcalpine.dialed",
       "infoPlist": {
-        "NSCameraUsageDescription": "Swing needs camera access to record your golf swing",
-        "NSMicrophoneUsageDescription": "Swing uses the microphone while recording your swing",
+        "NSCameraUsageDescription": "Dialed needs camera access to record your golf swing",
+        "NSMicrophoneUsageDescription": "Dialed uses the microphone while recording your swing",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/Dialed Logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

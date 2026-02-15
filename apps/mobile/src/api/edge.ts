@@ -1,10 +1,11 @@
 import { supabase } from '@/lib/supabase';
+import Constants from 'expo-constants';
 
 /**
  * Base URL for Supabase Edge Functions
  */
-const EDGE_FUNCTION_BASE_URL = process.env.SUPABASE_URL
-  ? `${process.env.SUPABASE_URL}/functions/v1`
+const EDGE_FUNCTION_BASE_URL = Constants.expoConfig?.extra?.supabaseUrl
+  ? `${Constants.expoConfig.extra.supabaseUrl}/functions/v1`
   : '';
 
 /**
