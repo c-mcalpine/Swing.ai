@@ -15,9 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.mobile",
+      "bundleIdentifier": "com.christianmcalpine.dialed",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app needs camera access to record your golf swing"
+        "NSCameraUsageDescription": "Swing needs camera access to record your golf swing",
+        "NSMicrophoneUsageDescription": "Swing uses the microphone while recording your swing"
       }
     },
     "android": {
