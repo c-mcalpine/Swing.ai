@@ -57,7 +57,7 @@ async function uploadFile(
     }
 
     // Generate public URL
-    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+    const supabaseUrl = process.env.SUPABASE_URL || '';
     const publicUrl = getPublicUrl(bucket, storagePath, supabaseUrl);
 
     return {

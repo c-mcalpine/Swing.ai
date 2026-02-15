@@ -97,7 +97,7 @@ export function useSwingAnalysisData(captureId: number | undefined) {
       if (!session) throw new Error('Not authenticated');
 
       const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/swing-analysis`,
+        `${process.env.SUPABASE_URL}/functions/v1/swing-analysis`,
         {
           method: 'POST',
           headers: {

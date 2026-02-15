@@ -3,8 +3,8 @@ import { supabase } from '@/lib/supabase';
 /**
  * Base URL for Supabase Edge Functions
  */
-const EDGE_FUNCTION_BASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL
-  ? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1`
+const EDGE_FUNCTION_BASE_URL = process.env.SUPABASE_URL
+  ? `${process.env.SUPABASE_URL}/functions/v1`
   : '';
 
 /**

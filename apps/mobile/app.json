@@ -18,7 +18,8 @@
       "bundleIdentifier": "com.christianmcalpine.dialed",
       "infoPlist": {
         "NSCameraUsageDescription": "Swing needs camera access to record your golf swing",
-        "NSMicrophoneUsageDescription": "Swing uses the microphone while recording your swing"
+        "NSMicrophoneUsageDescription": "Swing uses the microphone while recording your swing",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -36,6 +37,11 @@
     "plugins": [
       "expo-secure-store",
       "./plugins/withMediaPipeModel.js"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f0ac56b2-37bb-4a8e-8fbe-dee1ecfd90ab"
+      }
+    }
   }
 }
