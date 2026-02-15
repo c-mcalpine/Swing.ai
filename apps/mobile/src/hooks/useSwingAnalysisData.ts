@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import Constants from 'expo-constants';
 import { getSwingAnalysisByCaptureId, SwingAnalysisWithCapture } from '@/api/swingAnalysis';
 import { supabase } from '@/lib/supabase';
 
@@ -96,8 +97,9 @@ export function useSwingAnalysisData(captureId: number | undefined) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
+      const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl ?? '';
       const response = await fetch(
-        `${process.env.SUPABASE_URL}/functions/v1/swing-analysis`,
+        `${supabaseUrl}/functions/v1/swing-analysis`,
         {
           method: 'POST',
           headers: {

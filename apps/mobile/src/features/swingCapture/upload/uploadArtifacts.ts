@@ -1,4 +1,5 @@
 import * as FileSystem from 'expo-file-system';
+import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
 import {
   STORAGE_BUCKETS,
@@ -57,7 +58,7 @@ async function uploadFile(
     }
 
     // Generate public URL
-    const supabaseUrl = process.env.SUPABASE_URL || '';
+    const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl ?? '';
     const publicUrl = getPublicUrl(bucket, storagePath, supabaseUrl);
 
     return {
