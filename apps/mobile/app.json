@@ -18,7 +18,7 @@
       "bundleIdentifier": "com.christianmcalpine.dialed",
       "icon": {
         "light": "./assets/Dialed Logo Transparent.png",
-        "dark": "./assets/Dialed Logo Dark.png"
+        "dark": "./assets/Dialed Logo.png"
       },
       "infoPlist": {
         "NSCameraUsageDescription": "Dialed needs camera access to record your golf swing",
