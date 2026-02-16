@@ -21,8 +21,12 @@ import { UserCircleIcon } from 'phosphor-react-native';
 import { BottomNav } from '@/components/BottomNav';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
+import type { Database } from '@/lib/supabaseTypes';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Home'>;
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+type LessonRow = Database['public']['Tables']['lesson']['Row'];
+type DrillRow = Database['public']['Tables']['drill']['Row'];
 
 /**
  * Home Screen - Main dashboard with gamification, daily lesson, and quick drills
@@ -50,47 +54,49 @@ export function HomeScreen() {
     return 'Top 50%';
   };
 
-  // Default values
-  const user = profile
+  // Shape for UI (schema: profiles, lesson, drill per database_design)
+  const p = profile as ProfileRow | null;
+  const user = p
     ? {
-        name: profile.username || 'Golfer',
-        level: profile.level || 1,
-        currentXP: profile.xp || 0,
-        maxXP: (profile.xp || 0) + (profile.xp_to_next || 0) || 100,
+        name: p.username ?? 'Golfer',
+        level: p.level ?? 1,
+        currentXP: p.xp ?? 0,
+        maxXP: (p.xp ?? 0) + (p.xp_to_next ?? 0) || 100,
         streak: streak,
-        rank: profile.rank_title || 'Beginner',
-        percentile: getPercentile(profile.level),
-        profileImage: profile.avatar_url || null,
+        rank: p.rank_title ?? 'Beginner',
+        percentile: getPercentile(p.level ?? undefined),
+        profileImage: p.avatar_url ?? null,
       }
     : null;
 
-  const dailyLesson = dailyLessonData?.lesson
+  const lesson = dailyLessonData?.lesson as LessonRow | undefined;
+  const dailyLesson = lesson
     ? {
-        id: dailyLessonData.lesson.id,
-        title: dailyLessonData.lesson.name,
-        description:
-          dailyLessonData.lesson.description || 'Complete this lesson to improve your swing',
-        duration: `${dailyLessonData.lesson.duration_min || 15} mins`,
-        location: dailyLessonData.lesson.location || 'Any Location',
-        xp: dailyLessonData.lesson.xp_reward || 50,
-        image:
-          dailyLessonData.lesson.thumbnail_url || 'https://via.placeholder.com/400x200',
+        id: lesson.id,
+        title: lesson.title,
+        description: lesson.summary ?? 'Complete this lesson to improve your swing',
+        duration: `${lesson.duration_min ?? 15} mins`,
+        location: 'Any Location',
+        xp: 50,
+        image: 'https://via.placeholder.com/400x200',
       }
     : null;
 
   const quickDrills =
-    quickDrillsData?.map((assignment) => ({
-      id: assignment.drill_id,
-      title: assignment.drill.name,
-      description:
-        assignment.drill.objective || assignment.drill.description || 'Practice drill',
-      duration: `${assignment.drill.min_duration_min || 5}m`,
-      xp: assignment.drill.xp_reward || 10,
-      image: assignment.drill.thumbnail_url || 'https://via.placeholder.com/300x200',
-    })) || [];
+    quickDrillsData?.map((assignment) => {
+      const d = assignment.drill as DrillRow;
+      return {
+        id: assignment.drill_id,
+        title: d.name,
+        description: d.objective ?? d.description ?? 'Practice drill',
+        duration: `${d.min_duration_min ?? 5}m`,
+        xp: d.xp_reward ?? 10,
+        image: 'https://via.placeholder.com/300x200',
+      };
+    }) ?? [];
 
   const xpPercentage = user ? Math.min(100, (user.currentXP / user.maxXP) * 100) : 0;
-  const xpToNextLevel = user ? (profile!.xp_to_next || 0) : 0;
+  const xpToNextLevel = user && p ? (p.xp_to_next ?? 0) : 0;
 
   const handleStartLesson = () => {
     if (dailyLesson) {
@@ -104,9 +110,8 @@ export function HomeScreen() {
     console.log('Navigate to personalized plan');
   };
 
-  const handleQuickDrill = (drillId: string) => {
-    // Navigate to drill (placeholder)
-    console.log('Navigate to drill:', drillId);
+  const handleQuickDrill = (drillId: number) => {
+    navigation.navigate('DrillDetails', { drillId });
   };
 
   const handleCaptureSwing = () => {

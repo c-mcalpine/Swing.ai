@@ -74,12 +74,12 @@ export async function getUserSwingAnalyses(limit: number = 10): Promise<SwingAna
     throw error;
   }
 
-  // Transform joined data
-  return (analyses || []).map(item => ({
-    analysis: {
-      ...item,
-      swing_capture: undefined, // Remove join field
-    } as unknown as SwingAnalysis,
-    capture: (item as any).swing_capture as SwingCapture,
-  }));
+  // Transform joined data (select returns analysis row + swing_capture join)
+  return (analyses || []).map((item: Record<string, unknown>) => {
+    const { swing_capture, ...analysisRow } = item;
+    return {
+      analysis: analysisRow as SwingAnalysis,
+      capture: swing_capture as SwingCapture,
+    };
+  });
 }

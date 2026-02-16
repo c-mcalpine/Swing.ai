@@ -13,6 +13,15 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import {
+  CameraRotateIcon,
+  DeviceMobileCameraIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  FlashlightIcon,
+  GolfIcon,
+  VideoCameraIcon,
+} from 'phosphor-react-native';
 import { IconButton, FilterChip } from '@/components';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
@@ -38,6 +47,7 @@ export function SwingRecordingScreen() {
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [facing, setFacing] = useState<CameraType>('back');
+  const [overlayVisible, setOverlayVisible] = useState(true);
   const [permission, requestPermission] = useCameraPermissions();
   
   const { state, progress, error, captureId, processCapture, reset } = useSwingCapture();
@@ -153,20 +163,26 @@ export function SwingRecordingScreen() {
         mode="video"
         enableTorch={flashEnabled}
       >
-        <View style={styles.cameraOverlay} />
+        {overlayVisible && <View style={styles.cameraOverlay} />}
 
         {/* Golfer Silhouette Overlay */}
-        <View style={styles.silhouetteOverlay}>
-          <Text style={styles.silhouettePlaceholder}>⛳</Text>
-        </View>
+        {overlayVisible && (
+          <View style={styles.silhouetteOverlay}>
+            <View style={styles.silhouettePlaceholder}>
+              <GolfIcon size={200} color={colors.white} weight="duotone" />
+            </View>
+          </View>
+        )}
 
         {/* Grid Lines */}
-        <View style={styles.gridLines}>
-          <View style={[styles.gridLine, styles.gridLineH1]} />
-          <View style={[styles.gridLine, styles.gridLineH2]} />
-          <View style={[styles.gridLine, styles.gridLineV1]} />
-          <View style={[styles.gridLine, styles.gridLineV2]} />
-        </View>
+        {overlayVisible && (
+          <View style={styles.gridLines}>
+            <View style={[styles.gridLine, styles.gridLineH1]} />
+            <View style={[styles.gridLine, styles.gridLineH2]} />
+            <View style={[styles.gridLine, styles.gridLineV1]} />
+            <View style={[styles.gridLine, styles.gridLineV2]} />
+          </View>
+        )}
       </CameraView>
 
       {/* UI Overlay */}
@@ -191,7 +207,7 @@ export function SwingRecordingScreen() {
                 ]}
                 onPress={() => setFlashEnabled(!flashEnabled)}
               >
-                <Text style={styles.flashIcon}>⚡</Text>
+                <FlashlightIcon size={24} color={colors.white} weight="regular" />
               </TouchableOpacity>
             </View>
           </View>
@@ -199,7 +215,7 @@ export function SwingRecordingScreen() {
           {/* Instructions */}
           <View style={styles.instructions}>
             <View style={styles.instructionPill}>
-              <Text style={styles.instructionIcon}>📱</Text>
+              <DeviceMobileCameraIcon size={16} color={colors.white} weight="regular" />
               <Text style={styles.instructionText}>Place phone waist-height, 10ft back</Text>
             </View>
           </View>
@@ -248,8 +264,16 @@ export function SwingRecordingScreen() {
 
           {/* Camera Controls */}
           <View style={styles.cameraControls}>
-            <TouchableOpacity style={styles.controlBtn}>
-              <Text style={styles.controlBtnIcon}>🖼️</Text>
+            <TouchableOpacity
+              style={styles.controlBtn}
+              onPress={() => setOverlayVisible((v) => !v)}
+              accessibilityLabel={overlayVisible ? 'Hide alignment guide' : 'Show alignment guide'}
+            >
+              {overlayVisible ? (
+                <EyeSlashIcon size={24} color={colors.white} weight="regular" />
+              ) : (
+                <EyeIcon size={24} color={colors.white} weight="regular" />
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -258,7 +282,6 @@ export function SwingRecordingScreen() {
                 isRecording && styles.recordBtnRecording,
               ]}
               onPress={handleRecord}
-              disabled={isRecording}
             >
               <View
                 style={[
@@ -266,11 +289,13 @@ export function SwingRecordingScreen() {
                   isRecording && styles.recordBtnInnerRecording,
                 ]}
               />
-              <Text style={styles.recordBtnIcon}>📹</Text>
+              <View style={styles.recordBtnIcon}>
+                <VideoCameraIcon size={40} color={colors.white} weight="regular" />
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.controlBtn} onPress={toggleCameraFacing}>
-              <Text style={styles.controlBtnIcon}>🔄</Text>
+              <CameraRotateIcon size={24} color={colors.white} weight="regular" />
             </TouchableOpacity>
           </View>
 
@@ -339,9 +364,7 @@ const styles = StyleSheet.create({
     pointerEvents: 'none',
   },
   silhouettePlaceholder: {
-    fontSize: 200,
     opacity: 0.6,
-    color: colors.white,
   },
 
   // Grid Lines
@@ -587,7 +610,6 @@ const styles = StyleSheet.create({
   recordBtnIcon: {
     position: 'relative',
     zIndex: 10,
-    fontSize: 40,
   },
 
   // Helper Text

@@ -12,7 +12,7 @@ export type CaptureState = 'idle' | 'processing' | 'success' | 'error';
  * Hook for managing swing capture flow
  */
 export function useSwingCapture() {
-  const { user } = useAuth();
+  const { userId } = useAuth();
   const [state, setState] = useState<CaptureState>('idle');
   const [progress, setProgress] = useState<{ stage: string; percent: number }>({
     stage: '',
@@ -47,7 +47,7 @@ export function useSwingCapture() {
     videoDurationMs: number | null = null,
     config?: CaptureConfig
   ): Promise<number | null> => {
-    if (!user) {
+    if (!userId) {
       setError('You must be logged in to capture swings');
       setState('error');
       return null;
@@ -65,7 +65,7 @@ export function useSwingCapture() {
       const id = await coordinatorRef.current.processSwingCapture(
         videoUri,
         videoDurationMs,
-        user.id,
+        userId,
         config,
         progressCallback
       );

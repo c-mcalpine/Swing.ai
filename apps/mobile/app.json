@@ -16,6 +16,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.christianmcalpine.dialed",
+      "icon": {
+        "light": "./assets/Dialed Logo Transparent.png",
+        "dark": "./assets/Dialed Logo Dark.png"
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "Dialed needs camera access to record your golf swing",
         "NSMicrophoneUsageDescription": "Dialed uses the microphone while recording your swing",

@@ -13,7 +13,7 @@ import { AppStackParamList } from '@/navigation/AppStack';
 import { getUserSwingAnalyses, SwingAnalysisWithCapture } from '@/api/swingAnalysis';
 import { colors, spacing, typography, borderRadius } from '@/styles/tokens';
 
-type Props = NativeStackScreenProps<AppStackParamList, 'Home'>;
+type Props = NativeStackScreenProps<AppStackParamList, 'AnalysisHistory'>;
 
 export function AnalysisHistoryScreen({ navigation }: Props) {
   const [analyses, setAnalyses] = useState<SwingAnalysisWithCapture[]>([]);

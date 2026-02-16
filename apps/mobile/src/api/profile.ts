@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { Database } from '@/lib/supabaseTypes';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 /**
  * Fetch user profile from Supabase
@@ -38,17 +39,18 @@ export async function getCurrentUserProfile(): Promise<Profile | null> {
 }
 
 /**
- * Update current user's profile
+ * Update current user's profile.
+ * Use ProfileUpdate (profiles table) – omit user_id; all other fields optional per schema.
  */
-export async function updateProfile(updates: Partial<Profile>): Promise<Profile | null> {
+export async function updateProfile(updates: ProfileUpdate): Promise<Profile | null> {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
     throw new Error('No authenticated user');
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
+  // Supabase client can infer 'never' for table ops when generics don't align; cast builder to satisfy .update()
+  const { data, error } = await (supabase.from('profiles') as any)
     .update(updates)
     .eq('user_id', user.id)
     .select()
@@ -103,24 +105,24 @@ export async function completeOnboarding(data: {
   } else {
     // Create new profile with default values
     console.log('[API] Creating new profile...');
-    const { data: created, error: createError } = await supabase
-      .from('profiles')
-      .insert({
-        user_id: user.id,
-        username: user.email?.split('@')[0] || 'Golfer',
-        level: 1,
-        xp: 0,
-        xp_to_next: 100,
-        rank_title: 'Beginner',
-        badge: 'Rookie',
-        overall_score: 50,
-        tempo_score: 50,
-        speed_score: 50,
-        plane_score: 50,
-        rotation_score: 50,
-        balance_score: 50,
-        power_score: 50,
-      })
+    const profileInsert: Database['public']['Tables']['profiles']['Insert'] = {
+      user_id: user.id,
+      username: user.email?.split('@')[0] || 'Golfer',
+      level: 1,
+      xp: 0,
+      xp_to_next: 100,
+      rank_title: 'Beginner',
+      badge: 'Rookie',
+      overall_score: 50,
+      tempo_score: 50,
+      speed_score: 50,
+      plane_score: 50,
+      rotation_score: 50,
+      balance_score: 50,
+      power_score: 50,
+    };
+    const { data: created, error: createError } = await (supabase.from('profiles') as any)
+      .insert(profileInsert)
       .select()
       .single();
 
@@ -135,7 +137,7 @@ export async function completeOnboarding(data: {
   // Store goals in user_goal table if provided
   if (data.goals && data.goals.length > 0) {
     console.log('[API] Inserting goals:', data.goals);
-    const goalInserts = data.goals.map((goalTitle, index) => ({
+    const goalInserts = data.goals.map((goalTitle) => ({
       user_id: user.id,
       goal_type: 'improvement',
       title: goalTitle,
@@ -145,9 +147,7 @@ export async function completeOnboarding(data: {
       is_active: true,
     }));
 
-    const { error: goalsError } = await supabase
-      .from('user_goal')
-      .insert(goalInserts);
+    const { error: goalsError } = await (supabase.from('user_goal') as any).insert(goalInserts);
 
     if (goalsError) {
       console.warn('[API] Failed to insert goals:', goalsError);

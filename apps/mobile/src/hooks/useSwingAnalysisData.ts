@@ -2,6 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import Constants from 'expo-constants';
 import { getSwingAnalysisByCaptureId, SwingAnalysisWithCapture } from '@/api/swingAnalysis';
 import { supabase } from '@/lib/supabase';
+import type { Database } from '@/lib/supabaseTypes';
+
+type SwingAnalysisRow = Database['public']['Tables']['swing_analysis']['Row'];
+type SwingCaptureRow = Database['public']['Tables']['swing_capture']['Row'];
+/** Result of .from('swing_analysis').select('*, swing_capture!inner(*)') — analysis row + joined capture */
+type AnalysisRowWithCapture = SwingAnalysisRow & { swing_capture: SwingCaptureRow };
 
 const POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
 const MAX_POLL_TIME_MS = 90000; // Timeout after 90 seconds
@@ -43,10 +49,11 @@ export function useSwingAnalysisData(captureId: number | undefined) {
       }
 
       if (analysisData) {
-        // Analysis complete!
+        const row = analysisData as AnalysisRowWithCapture;
+        const { swing_capture, ...analysisRow } = row;
         setData({
-          analysis: analysisData,
-          capture: analysisData.swing_capture,
+          analysis: analysisRow as SwingAnalysisRow,
+          capture: swing_capture,
         });
         setLoading(false);
         setAnalyzing(false);
@@ -54,8 +61,8 @@ export function useSwingAnalysisData(captureId: number | undefined) {
         return true;
       }
 
-      // Check capture status
-      const { data: captureData, error: captureError } = await supabase
+      // Check capture status (swing_capture.status: uploaded | analyzing | completed | failed)
+      const { data: captureDataRaw, error: captureError } = await supabase
         .from('swing_capture')
         .select('status')
         .eq('id', captureId)
@@ -66,6 +73,7 @@ export function useSwingAnalysisData(captureId: number | undefined) {
         return false;
       }
 
+      const captureData = captureDataRaw as { status: string } | null;
       if (captureData?.status === 'failed') {
         setError('Analysis failed. Please try recording again.');
         setLoading(false);

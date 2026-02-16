@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import { File } from 'expo-file-system';
 import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
 import {
@@ -33,10 +33,9 @@ async function uploadFile(
   contentType: string
 ): Promise<UploadResult> {
   try {
-    // Read file as base64
-    const base64 = await FileSystem.readAsStringAsync(fileUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+    // Read file as base64 (new expo-file-system API: File.base64())
+    const file = new File(fileUri);
+    const base64 = await file.base64();
 
     // Convert base64 to ArrayBuffer
     const binaryString = atob(base64);

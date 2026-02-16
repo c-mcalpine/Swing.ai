@@ -39,12 +39,13 @@ export function CaptureScreen() {
 
         <View style={styles.buttons}>
           <Button
-            label="Start Setup"
             onPress={handleStartCapture}
             variant="primary"
             size="large"
             style={styles.button}
-          />
+          >
+            Start Setup
+          </Button>
           
           <TouchableOpacity
             onPress={handleQuickCapture}

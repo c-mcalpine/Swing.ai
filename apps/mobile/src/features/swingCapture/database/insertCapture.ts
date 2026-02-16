@@ -6,6 +6,9 @@ import {
   UploadedArtifacts,
 } from '../types/pose';
 
+/** Per database_design: swing_capture has id, user_id, status, camera_angle, environment, pose_summary, created_at, updated_at, client_capture_id */
+type SwingCaptureIdRow = { id: number };
+
 /**
  * Insert swing_capture record with idempotency
  * 
@@ -16,18 +19,16 @@ import {
  * @param userId - User ID
  * @param clientCaptureId - Client-generated UUID for idempotency
  * @param poseSummary - Pose summary data (compact!)
- * @param club - Club used (optional)
  * @returns Inserted or existing capture ID
  */
 export async function insertSwingCapture(
   userId: string,
   clientCaptureId: string,
-  poseSummary: PoseSummaryV1,
-  club?: string
+  poseSummary: PoseSummaryV1
 ): Promise<number> {
   try {
     // First, check if capture already exists (idempotency)
-    const { data: existing, error: checkError } = await supabase
+    const { data: existingRaw, error: checkError } = await supabase
       .from('swing_capture')
       .select('id')
       .eq('user_id', userId)
@@ -39,21 +40,19 @@ export async function insertSwingCapture(
       // Continue to insert attempt
     }
 
+    const existing = existingRaw as SwingCaptureIdRow | null;
     if (existing?.id) {
       console.log(`Capture already exists with client_capture_id ${clientCaptureId}, returning existing ID ${existing.id}`);
       return existing.id;
     }
 
-    // Insert new capture
-    const { data, error } = await supabase
-      .from('swing_capture')
+    // Insert new capture (schema: user_id, client_capture_id, status, pose_summary; no club/captured_at)
+    const { data: insertData, error } = await (supabase.from('swing_capture') as any)
       .insert({
         user_id: userId,
         client_capture_id: clientCaptureId,
         status: 'uploaded',
         pose_summary: poseSummary,
-        club,
-        captured_at: new Date().toISOString(),
       })
       .select('id')
       .single();
@@ -62,13 +61,14 @@ export async function insertSwingCapture(
       // Handle unique constraint violation (race condition)
       if (error.code === '23505') {
         // Duplicate, fetch the existing one
-        const { data: retryData, error: retryError } = await supabase
+        const { data: retryRaw, error: retryError } = await supabase
           .from('swing_capture')
           .select('id')
           .eq('user_id', userId)
           .eq('client_capture_id', clientCaptureId)
           .single();
 
+        const retryData = retryRaw as SwingCaptureIdRow | null;
         if (retryError || !retryData?.id) {
           throw new Error(`Failed to fetch existing capture after conflict: ${retryError?.message}`);
         }
@@ -79,6 +79,7 @@ export async function insertSwingCapture(
       throw new Error(`Failed to insert swing_capture: ${error.message}`);
     }
 
+    const data = insertData as SwingCaptureIdRow | null;
     if (!data?.id) {
       throw new Error('Capture ID not returned from insert');
     }
@@ -126,17 +127,16 @@ export async function insertSwingFrames(
 
       return {
         capture_id: captureId,
-        frame_number: index,
         phase: keyframe.phase,
         frame_path: framePath.storagePath,
         overlay_path: overlayPath?.storagePath || null,
-        t_ms: keyframe.timestamp_ms,
-        pose_data: artifact, // Store full artifact in pose_data column
+        timestamp_ms: keyframe.timestamp_ms,
+        pose_data: artifact,
       };
     });
 
-    // Batch insert frames
-    const { error } = await supabase.from('swing_frame').insert(frameRows);
+    // Batch insert frames (schema: capture_id, phase, frame_path, overlay_path, timestamp_ms, pose_data)
+    const { error } = await (supabase.from('swing_frame') as any).insert(frameRows);
 
     if (error) {
       throw new Error(`Failed to insert swing_frames: ${error.message}`);
@@ -153,8 +153,7 @@ export async function insertSwingFrames(
  */
 export async function markCaptureFailed(captureId: number): Promise<void> {
   try {
-    await supabase
-      .from('swing_capture')
+    await (supabase.from('swing_capture') as any)
       .update({ status: 'failed' })
       .eq('id', captureId);
   } catch (err) {

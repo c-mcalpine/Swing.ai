@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ImageBackground, ViewStyle } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ImageBackground, StyleProp, ViewStyle } from 'react-native';
 import { colors } from '@/styles/tokens';
 
 interface CardProps {
   children: React.ReactNode;
   className?: string;
   onPress?: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -75,7 +75,7 @@ export function HorizontalCard({
   inactive,
 }: HorizontalCardProps) {
   return (
-    <Card onPress={onPress} style={[styles.horizontalCard, inactive && styles.horizontalCardInactive]}>
+    <Card onPress={onPress} style={[styles.horizontalCard, inactive ? styles.horizontalCardInactive : null]}>
       <ImageBackground source={{ uri: image }} style={styles.horizontalImage} imageStyle={styles.horizontalImageStyle} />
       <View style={styles.horizontalContent}>
         <Text style={styles.horizontalTitle}>{title}</Text>

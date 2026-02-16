@@ -49,17 +49,19 @@ export function useChallengesWithProgress(
         setError(null);
 
         // Fetch active challenge instances with their challenge details
-        const { data: instances, error: instancesError } = await supabase
+        const { data: instancesRaw, error: instancesError } = await supabase
           .from('challenge_instance')
           .select('*, challenge:challenge_id(*)')
           .eq('is_active', true)
-          .gte('end_date', new Date().toISOString())
-          .order('end_date', { ascending: true });
+          .gte('ends_at', new Date().toISOString())
+          .order('ends_at', { ascending: true });
 
         if (instancesError) throw instancesError;
 
-        // Fetch user's progress for these challenges
-        const instanceIds = (instances || []).map((i) => i.id);
+        const instances = (instancesRaw ?? []) as ChallengeInstanceWithDetails[];
+
+        // Fetch user's progress for these challenges (challenge_progress.challenge_instance_id per schema)
+        const instanceIds = instances.map((i) => i.id);
         const { data: progressData, error: progressError } = await supabase
           .from('challenge_progress')
           .select('*')
@@ -68,12 +70,14 @@ export function useChallengesWithProgress(
 
         if (progressError) throw progressError;
 
+        const progressList = (progressData ?? []) as ChallengeProgress[];
+
         // Merge progress with instances
-        const result = (instances || []).map((instance) => {
+        const result = instances.map((instance) => {
           const progress =
-            progressData?.find((p) => p.challenge_instance_id === instance.id) || null;
+            progressList.find((p) => p.challenge_instance_id === instance.id) ?? null;
           return {
-            instance: instance as ChallengeInstanceWithDetails,
+            instance,
             progress,
           };
         });

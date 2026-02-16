@@ -5,7 +5,7 @@ import type { Database } from '@/lib/supabaseTypes';
 type Drill = Database['public']['Tables']['drill']['Row'];
 
 export interface DrillAssignmentWithDrill {
-  drill_id: string;
+  drill_id: number;
   drill: Drill;
 }
 
@@ -48,17 +48,18 @@ export function useQuickDrills(
         setLoading(true);
         setError(null);
         
-        // Fetch available drills
-        const { data: drills, error: drillError } = await supabase
+        // Fetch available drills (drill table: id, slug, name, etc. per database_design)
+        const { data: drillsRaw, error: drillError } = await supabase
           .from('drill')
           .select('*')
-          .eq('is_active', true)
           .limit(limit);
 
         if (drillError) throw drillError;
-        
+
+        const drills = (drillsRaw ?? []) as Drill[];
+
         if (isMounted) {
-          const formattedDrills = (drills || []).map((drill) => ({
+          const formattedDrills = drills.map((drill) => ({
             drill_id: drill.id,
             drill,
           }));

@@ -13,7 +13,6 @@
 
 import * as FileSystem from 'expo-file-system';
 import * as VideoThumbnails from 'expo-video-thumbnails';
-import { Video } from 'expo-av';
 import { supabase } from '@/lib/supabase';
 import { edgeFunctions } from '@/api/edge';
 import { awardXp } from '@/lib/xp';
@@ -225,7 +224,7 @@ export class CaptureCoordinator {
       // Stage 7: Insert capture record with idempotency (gets capture_id)
       onProgress?.('Creating capture record', 0.77);
       const { insertSwingCapture } = await import('./database/insertCapture');
-      captureId = await insertSwingCapture(userId, clientCaptureId, poseSummary, club);
+      captureId = await insertSwingCapture(userId, clientCaptureId, poseSummary);
 
       // Stage 8: Upload artifacts (idempotent via client_capture_id paths)
       onProgress?.('Uploading frames', 0.8);
@@ -248,17 +247,18 @@ export class CaptureCoordinator {
       // Stage 10: Trigger analysis
       onProgress?.('Starting AI analysis', 0.95);
       try {
-        const analysisResult = await edgeFunctions.analyzeSwing({ capture_id: captureId });
+        const analysisResult = await edgeFunctions.analyzeSwing(captureId);
         
-        // Award XP for swing capture
+        // Award XP (same idempotencyKey as AnalysisScreen so we never double-award)
         try {
           await awardXp({
             sourceType: 'swing_capture',
             sourceId: captureId,
             meta: {
               overall_confidence: analysisResult.analysis.confidence,
-              picked_takeaway: true
-            }
+              picked_takeaway: true,
+            },
+            idempotencyKey: `swing_capture-${captureId}`,
           });
         } catch (xpError) {
           console.error('Failed to award XP for swing capture:', xpError);
@@ -309,27 +309,47 @@ export class CaptureCoordinator {
   }
 
   /**
-   * Get actual video duration from URI using expo-av
+   * Get video duration in ms by probing with expo-video-thumbnails.
+   * Audio.Sound is for audio only; we binary-search the last valid thumbnail time.
    */
   async getVideoDuration(videoUri: string): Promise<number> {
+    const FALLBACK = 2500;
+
     try {
-      const { sound, status } = await Video.createAsync(
-        { uri: videoUri },
-        { shouldPlay: false }
-      );
-      
-      if (status.isLoaded && status.durationMillis) {
-        await sound.unloadAsync();
-        return Math.floor(status.durationMillis);
-      }
-      
-      await sound.unloadAsync();
-      console.warn('Could not get video duration, using default');
-      return 2500; // Default 2.5 seconds
-    } catch (error) {
-      console.warn('Failed to get video duration:', error);
-      return 2500; // Default fallback
+      await VideoThumbnails.getThumbnailAsync(videoUri, { time: 0, quality: 0.1 });
+    } catch (e) {
+      console.warn('Failed to get thumbnail at t=0, using fallback duration:', e);
+      return FALLBACK;
     }
+
+    const canThumb = async (t: number) => {
+      try {
+        await VideoThumbnails.getThumbnailAsync(videoUri, { time: t, quality: 0.05 });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    // Swing clips are typically 1–6s; start hi at 6s, cap at 20s to reduce thumbnail calls
+    let lo = 0;
+    let hi = 6000;
+    const MAX_CAP = 20_000;
+
+    while (hi < MAX_CAP && (await canThumb(hi))) {
+      lo = hi;
+      hi *= 2;
+    }
+
+    if (hi >= MAX_CAP && (await canThumb(MAX_CAP))) return MAX_CAP;
+
+    while (hi - lo > 50) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (await canThumb(mid)) lo = mid;
+      else hi = mid;
+    }
+
+    return Math.min(MAX_CAP, Math.max(500, lo + 50));
   }
 
   /**

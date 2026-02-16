@@ -20,9 +20,31 @@ import { HeroCard, HorizontalCard } from '@/components/Card';
 import { BottomNav } from '@/components/BottomNav';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
+import type { Database } from '@/lib/supabaseTypes';
 import { BrainIcon } from 'phosphor-react-native';
 
 type ReviewScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Review'>;
+type LessonRow = Database['public']['Tables']['lesson']['Row'];
+type DrillRow = Database['public']['Tables']['drill']['Row'];
+
+const PLACEHOLDER_IMAGE =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuC9FXOKAEpmAu12CM8oS0U9vFKhZGhyprWjrODS_3PTaY-DeKt3AEQW5S0CHZoQruOV8KkAVuzpGSYPUvvPzR4SRiawOiV56YXbZ0OWL7r47dOGnoOUmjrtAaheXKDVMcD5HU9qQMDV_69bzU0CcsM8xBNaKt4P17mcuOY0H6UBUaaEalJS4LbxAcEzEUg0yYOV9gKfAveKCUYNWJz3e7tgs7ipeuAdWx06gAUwKrSS149gCrYl18_QB7y8JxoRDflxvsefDtIJ8_Y';
+
+function itemDisplayTitle(isLesson: boolean, itemData: LessonRow | DrillRow | undefined): string {
+  if (!itemData) return isLesson ? 'Review Lesson' : 'Review Drill';
+  return isLesson ? (itemData as LessonRow).title : (itemData as DrillRow).name;
+}
+
+function itemDisplayDescription(
+  isLesson: boolean,
+  itemData: LessonRow | DrillRow | undefined,
+  fallback: string
+): string {
+  if (!itemData) return fallback;
+  if (isLesson) return (itemData as LessonRow).summary ?? fallback;
+  const d = itemData as DrillRow;
+  return d.objective ?? d.description ?? fallback;
+}
 
 /**
  * Smart Review Screen - Spaced repetition review system
@@ -48,8 +70,7 @@ export function ReviewScreen() {
       return {
         title: 'No Review Items',
         description: 'Complete some drills or lessons to build your review schedule.',
-        image:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuC9FXOKAEpmAu12CM8oS0U9vFKhZGhyprWjrODS_3PTaY-DeKt3AEQW5S0CHZoQruOV8KkAVuzpGSYPUvvPzR4SRiawOiV56YXbZ0OWL7r47dOGnoOUmjrtAaheXKDVMcD5HU9qQMDV_69bzU0CcsM8xBNaKt4P17mcuOY0H6UBUaaEalJS4LbxAcEzEUg0yYOV9gKfAveKCUYNWJz3e7tgs7ipeuAdWx06gAUwKrSS149gCrYl18_QB7y8JxoRDflxvsefDtIJ8_Y',
+        image: PLACEHOLDER_IMAGE,
         progress: { current: 0, total: 1 },
         duration: '0 min',
         coaches: [],
@@ -61,22 +82,14 @@ export function ReviewScreen() {
     const firstItem = plan.items[0];
     const isLesson = firstItem.item_type === 'lesson';
     const itemData = isLesson
-      ? taxonomy?.lessons?.find((l: any) => l.id === firstItem.item_id)
-      : taxonomy?.drills?.find((d: any) => d.id === firstItem.item_id);
+      ? taxonomy?.lessons?.find((l) => l.id === firstItem.item_id)
+      : taxonomy?.drills?.find((d) => d.id === firstItem.item_id);
 
     return {
-      title: isLesson
-        ? itemData?.title || 'Review Lesson'
-        : itemData?.name || 'Review Drill',
+      title: itemDisplayTitle(isLesson, itemData),
       description:
-        firstItem.why ||
-        itemData?.description ||
-        itemData?.objective ||
-        itemData?.summary ||
-        'Time to review this item.',
-      image:
-        itemData?.thumbnail_url ||
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuC9FXOKAEpmAu12CM8oS0U9vFKhZGhyprWjrODS_3PTaY-DeKt3AEQW5S0CHZoQruOV8KkAVuzpGSYPUvvPzR4SRiawOiV56YXbZ0OWL7r47dOGnoOUmjrtAaheXKDVMcD5HU9qQMDV_69bzU0CcsM8xBNaKt4P17mcuOY0H6UBUaaEalJS4LbxAcEzEUg0yYOV9gKfAveKCUYNWJz3e7tgs7ipeuAdWx06gAUwKrSS149gCrYl18_QB7y8JxoRDflxvsefDtIJ8_Y',
+        firstItem.why || itemDisplayDescription(isLesson, itemData, 'Time to review this item.'),
+      image: PLACEHOLDER_IMAGE,
       progress: { current: 1, total: 1 },
       duration: `${firstItem.minutes} min`,
       coaches: [],
@@ -90,10 +103,10 @@ export function ReviewScreen() {
     if (!plan?.items || plan.items.length === 0) return [];
 
     return plan.items.slice(0, 3).map((item: any, index: number) => {
-      const itemData =
-        item.item_type === 'lesson'
-          ? taxonomy?.lessons?.find((l: any) => l.id === item.item_id)
-          : taxonomy?.drills?.find((d: any) => d.id === item.item_id);
+      const isLesson = item.item_type === 'lesson';
+      const itemData = isLesson
+        ? taxonomy?.lessons?.find((l) => l.id === item.item_id)
+        : taxonomy?.drills?.find((d) => d.id === item.item_id);
 
       const isDue = item.due_at && new Date(item.due_at) <= new Date();
       const dueDate = item.due_at ? new Date(item.due_at) : null;
@@ -103,18 +116,10 @@ export function ReviewScreen() {
           : `Due ${Math.ceil((dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days`
         : 'Scheduled';
 
-      const isLesson = item.item_type === 'lesson';
       return {
         id: item.item_id,
-        title: isLesson
-          ? itemData?.title || 'Review Lesson'
-          : itemData?.name || 'Review Drill',
-        description:
-          item.why ||
-          itemData?.description ||
-          itemData?.objective ||
-          itemData?.summary ||
-          '',
+        title: itemDisplayTitle(isLesson, itemData),
+        description: item.why || itemDisplayDescription(isLesson, itemData, ''),
         timeAgo,
         icon: item.item_type === 'lesson' ? '🎓' : '⛳',
         color: index === 0 ? 'primary' : index === 1 ? 'orange' : 'blue',
@@ -128,10 +133,10 @@ export function ReviewScreen() {
     if (!plan?.items || plan.items.length < 2) return [];
 
     return plan.items.slice(1, 3).map((item: any) => {
-      const itemData =
-        item.item_type === 'lesson'
-          ? taxonomy?.lessons?.find((l: any) => l.id === item.item_id)
-          : taxonomy?.drills?.find((d: any) => d.id === item.item_id);
+      const isLesson = item.item_type === 'lesson';
+      const itemData = isLesson
+        ? taxonomy?.lessons?.find((l) => l.id === item.item_id)
+        : taxonomy?.drills?.find((d) => d.id === item.item_id);
 
       const isDue = item.due_at && new Date(item.due_at) <= new Date();
       const dueDate = item.due_at ? new Date(item.due_at) : null;
@@ -141,17 +146,12 @@ export function ReviewScreen() {
           : `Due ${Math.ceil((dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days`
         : 'Scheduled';
 
-      const isLesson = item.item_type === 'lesson';
       return {
         id: item.item_id,
-        title: isLesson
-          ? itemData?.title || 'Review Lesson'
-          : itemData?.name || 'Review Drill',
+        title: itemDisplayTitle(isLesson, itemData),
         subtitle,
         duration: `${item.minutes} min`,
-        image:
-          itemData?.thumbnail_url ||
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuAcRbQHP_KN6w9PmfTxS3Rk6tHYeUdIxNuUnO4BvbT1T1m3HmAT0APXPtAu1iRqpkYVEjl3GrRcWiZsHiIeCWFTp9PAe7h-FBnXDw2Uetoz5rI8y_F_B7BMdX33L02YWn7J7u8IGswDGaQVwBsi7wzT2YWy0uks3sQdiE_ifwQ_tQRDuN2Wqu26jIMZGG25PHddh5FHTMMG7AtOztSjXxcgzSG9taB4xtMIkx-oYZ2fbt8VRoYbqTvv5O-oPlC-x3Dz6tSz5cus3tw',
+        image: PLACEHOLDER_IMAGE,
         action: 'play_arrow',
         active: isDue,
         item,

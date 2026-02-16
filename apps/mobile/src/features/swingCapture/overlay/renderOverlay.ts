@@ -1,5 +1,5 @@
-import { Skia, Canvas, Path, Paint, ImageFormat } from '@shopify/react-native-skia';
-import * as FileSystem from 'expo-file-system';
+import { Skia, Canvas, Path, Paint, ImageFormat, PaintStyle } from '@shopify/react-native-skia';
+import { File, Paths } from 'expo-file-system';
 import { PoseLandmark } from '../types/pose';
 import { POSE_LANDMARKS } from '../pose/poseAnalysis';
 
@@ -66,10 +66,9 @@ export async function renderPoseOverlay(
   imageHeight: number
 ): Promise<string> {
   try {
-    // Load the original image
-    const imageData = await FileSystem.readAsStringAsync(imageUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+    // Load the original image (new expo-file-system API: File.base64())
+    const sourceFile = new File(imageUri);
+    const imageData = await sourceFile.base64();
     const image = Skia.Image.MakeImageFromEncoded(
       Skia.Data.fromBase64(imageData)
     );
@@ -140,13 +139,12 @@ export async function renderPoseOverlay(
     const snapshot = surface.makeImageSnapshot();
     const pngData = snapshot.encodeToBase64(ImageFormat.PNG);
 
-    // Save to temporary file
-    const overlayUri = `${FileSystem.cacheDirectory}overlay_${Date.now()}.png`;
-    await FileSystem.writeAsStringAsync(overlayUri, pngData, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+    // Save to temporary file (new API: Paths.cache + File.write with base64)
+    const outFile = new File(Paths.cache, `overlay_${Date.now()}.png`);
+    outFile.create({ overwrite: true });
+    outFile.write(pngData, { encoding: 'base64' });
 
-    return overlayUri;
+    return outFile.uri;
   } catch (error) {
     console.error('Failed to render pose overlay:', error);
     throw new Error(`Overlay rendering failed: ${error}`);
@@ -160,9 +158,8 @@ export async function getImageDimensions(
   imageUri: string
 ): Promise<{ width: number; height: number }> {
   try {
-    const imageData = await FileSystem.readAsStringAsync(imageUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+    const sourceFile = new File(imageUri);
+    const imageData = await sourceFile.base64();
     const image = Skia.Image.MakeImageFromEncoded(
       Skia.Data.fromBase64(imageData)
     );
@@ -187,7 +184,8 @@ export async function getImageDimensions(
 export async function cleanupOverlays(overlayUris: string[]): Promise<void> {
   for (const uri of overlayUris) {
     try {
-      await FileSystem.deleteAsync(uri, { idempotent: true });
+      const file = new File(uri);
+      if (file.exists) file.delete();
     } catch (error) {
       console.warn(`Failed to cleanup overlay ${uri}:`, error);
     }

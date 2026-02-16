@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Image,
   Dimensions,
   SafeAreaView,
 } from 'react-native';
@@ -14,6 +13,8 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
 import { useSwingAnalysisData } from '@/hooks/useSwingAnalysisData';
+import { useUserProfile } from '@/hooks/useProfile';
+import { awardXp } from '@/lib/xp';
 import { Button } from '@/components/Button';
 import { colors, spacing, typography } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
@@ -31,7 +32,33 @@ export function AnalysisScreen() {
   const { captureId } = route.params || {};
 
   const { data, loading, analyzing, error, timedOut, retryAnalysis } = useSwingAnalysisData(captureId);
+  const { data: profile, refetch: refetchProfile } = useUserProfile();
+  const [xpAwardResult, setXpAwardResult] = useState<{ xp_awarded: number; new_total_xp: number; week_xp: number } | null>(null);
+  const awardAttemptedRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!data?.analysis || !data?.capture?.id) return;
+    if (awardAttemptedRef.current) return;
+
+    awardAttemptedRef.current = true;
+    const { analysis, capture } = data;
+
+    awardXp({
+      sourceType: 'swing_capture',
+      sourceId: capture.id,
+      meta: { overall_confidence: analysis.overall_confidence },
+      idempotencyKey: `swing_capture-${capture.id}`,
+    })
+      .then((result) => {
+        setXpAwardResult(result);
+        refetchProfile();
+      })
+      .catch((err) => {
+        console.warn('[Analysis] award_xp failed:', err);
+        awardAttemptedRef.current = false;
+      });
+  }, [data?.capture?.id, data?.analysis?.overall_confidence, refetchProfile]);
 
   if (loading || analyzing) {
     return (
@@ -52,29 +79,44 @@ export function AnalysisScreen() {
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error || 'Analysis not found'}</Text>
         {timedOut && (
-          <Button 
-            label="Retry Analysis" 
-            variant="primary" 
+          <Button
+            variant="primary"
             onPress={retryAnalysis}
             style={{ marginTop: 16 }}
-          />
+          >
+            Retry Analysis
+          </Button>
         )}
-        <Button 
-          label="Go Back"
-          variant="secondary" 
+        <Button
+          variant="secondary"
           onPress={() => navigation.goBack()}
           style={{ marginTop: 8 }}
-        />
+        >
+          Go Back
+        </Button>
       </View>
     );
   }
 
   const { analysis, capture } = data;
 
-  // Parse scores
-  const issueScores = analysis.issue_scores as Record<string, any>;
-  const mechanicScores = analysis.mechanic_scores as Record<string, number>;
-  const confidence = analysis.overall_confidence || 85;
+  // Parse scores (DB stores 0..1; convert to 0..100 for display, clamp to avoid bad data)
+  const issueScoresRaw = analysis.issue_scores as Record<string, number>;
+  const mechanicScoresRaw = analysis.mechanic_scores as Record<string, number>;
+  const rawConf = Number(analysis.overall_confidence ?? 0.85);
+  const confidence = Math.round(Math.max(0, Math.min(1, rawConf)) * 100);
+  const mechanicScores = Object.fromEntries(
+    Object.entries(mechanicScoresRaw ?? {}).map(([k, v]) => {
+      const n = Number(v ?? 0);
+      const pct = n <= 1 ? n * 100 : n;
+      return [k, Math.round(Math.max(0, Math.min(100, pct)))];
+    })
+  ) as Record<string, number>;
+  const issueScores: Record<string, number> = {};
+  for (const [k, v] of Object.entries(issueScoresRaw || {})) {
+    const num = typeof v === 'number' ? v : (v as any)?.severity ? 0.8 : Number(v);
+    issueScores[k] = num <= 1 ? num : num / 100;
+  }
 
   // Calculate rating based on confidence
   const getRating = (score: number) => {
@@ -94,11 +136,12 @@ export function AnalysisScreen() {
     })
     .slice(0, 3);
 
-  // Extract focus areas (issues with high severity)
+  // Extract focus areas (issues with high numeric severity 0..1)
   const focusAreas = Object.entries(issueScores)
-    .filter(([_, data]: [string, any]) => data.severity === 'high')
+    .filter(([_, score]) => Number(score) >= 0.5)
+    .sort(([, a], [, b]) => Number(b) - Number(a))
     .map(([key]) => key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()))
-    .slice(0, 2);
+    .slice(0, 3);
 
   // Metrics
   const metrics = [
@@ -125,7 +168,9 @@ export function AnalysisScreen() {
     },
   ];
 
-  const coachTip = analysis.coach_notes || 'Keep practicing! Focus on the areas highlighted above.';
+  const coachTip =
+    (analysis.raw_json as { coach_notes?: string } | null)?.coach_notes ||
+    'Keep practicing! Focus on the areas highlighted above.';
 
   const handleBack = () => {
     navigation.goBack();
@@ -161,9 +206,9 @@ export function AnalysisScreen() {
           <Text style={styles.iconButtonText}>←</Text>
         </TouchableOpacity>
         <View style={styles.titleArea}>
-          <Text style={styles.club}>{capture.club_type?.toUpperCase() || '7 IRON'}</Text>
+          <Text style={styles.club}>IRONS</Text>
           <Text style={styles.date}>
-            {new Date(capture.captured_at).toLocaleString('en-US', {
+            {new Date(capture.created_at).toLocaleString('en-US', {
               month: 'short',
               day: 'numeric',
               hour: 'numeric',
@@ -213,7 +258,7 @@ export function AnalysisScreen() {
           </View>
         </View>
 
-        {/* XP Banner */}
+        {/* XP Banner (award_xp result + profile level) */}
         <View style={styles.xpBanner}>
           <View style={styles.xpContent}>
             <View style={styles.xpLeft}>
@@ -221,33 +266,41 @@ export function AnalysisScreen() {
                 <Text style={styles.xpIconText}>⚡</Text>
               </View>
               <View style={styles.xpInfo}>
-                <Text style={styles.xpEarned}>+50 XP EARNED</Text>
+                <Text style={styles.xpEarned}>
+                  {xpAwardResult ? `+${xpAwardResult.xp_awarded} XP EARNED` : '… XP'}
+                </Text>
                 <View style={styles.xpProgress}>
-                  <View style={[styles.xpProgressFill, { width: '70%' }]} />
+                  <View
+                    style={[
+                      styles.xpProgressFill,
+                      {
+                        width: profile
+                          ? `${Math.min(100, ((profile.xp ?? 0) / ((profile.xp ?? 0) + (profile.xp_to_next ?? 100) || 1)) * 100)}%`
+                          : '0%',
+                      },
+                    ]}
+                  />
                 </View>
               </View>
             </View>
-            <Text style={styles.xpLevel}>Lvl 12 Golfer</Text>
+            <Text style={styles.xpLevel}>
+              Lvl {profile?.level ?? 1} {profile?.rank_title ?? 'Golfer'}
+            </Text>
           </View>
         </View>
 
-        {/* Video Playback */}
-        <TouchableOpacity style={styles.videoCard} onPress={handlePlayVideo}>
-          <Image
-            source={{ uri: capture.video_url || 'https://via.placeholder.com/640x360' }}
-            style={styles.videoBackground}
-            resizeMode="cover"
-          />
-          <View style={styles.videoOverlay} />
-          <View style={styles.videoPlay}>
-            <View style={styles.playButton}>
-              <Text style={styles.playIcon}>▶</Text>
-            </View>
+        {/* Swing capture (key frames only; no video URL stored) */}
+        <View style={styles.videoCard}>
+          <View style={styles.videoPlaceholder}>
+            <Text style={styles.videoPlaceholderText}>Swing capture</Text>
+            <Text style={styles.videoPlaceholderSubtext}>
+              {capture.camera_angle ? `${capture.camera_angle} view` : 'Key frames analyzed'}
+            </Text>
           </View>
           <View style={styles.videoBadge}>
-            <Text style={styles.videoBadgeText}>AI ANALYSIS ON</Text>
+            <Text style={styles.videoBadgeText}>AI ANALYSIS</Text>
           </View>
-        </TouchableOpacity>
+        </View>
 
         {/* The Good */}
         {goodPoints.length > 0 && (
@@ -555,7 +608,7 @@ const styles = StyleSheet.create({
     color: colors.gray[400],
   },
 
-  // Video Card
+  // Swing capture card (no video URL)
   videoCard: {
     position: 'relative',
     width: '100%',
@@ -568,6 +621,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 4,
+    backgroundColor: colors.gray[800],
+  },
+  videoPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  videoPlaceholderText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.gray[400],
+  },
+  videoPlaceholderSubtext: {
+    fontSize: 12,
+    color: colors.gray[500],
+    marginTop: 4,
   },
   videoBackground: {
     ...StyleSheet.absoluteFillObject,

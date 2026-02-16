@@ -60,21 +60,23 @@ export async function awardXp({
   sourceId,
   meta = {},
   reason = null,
+  idempotencyKey = null,
 }: {
   sourceType: 'drill' | 'smart_review' | 'swing_capture' | 'challenge';
   sourceId: number;
   meta?: Record<string, any>;
   reason?: string | null;
+  /** If provided, same key returns existing award (e.g. swing_capture-123 for one-time per capture) */
+  idempotencyKey?: string | null;
 }): Promise<AwardXpResult> {
-  // Generate idempotency key from source to prevent duplicate awards
-  const idempotencyKey = `${sourceType}-${sourceId}-${Date.now()}`;
+  const key = idempotencyKey ?? `${sourceType}-${sourceId}-${Date.now()}`;
 
   const { data, error } = await supabase.rpc('award_xp', {
     p_source_type: sourceType,
     p_source_id: sourceId,
     p_reason: reason,
     p_meta: meta,
-    p_idempotency_key: idempotencyKey,
+    p_idempotency_key: key,
   } as any) as { data: AwardXpResult[] | null; error: any };
 
   if (error) {

@@ -1,19 +1,23 @@
 import { useState, useCallback } from 'react';
 import { edgeFunctions, EdgeFunctionError } from '@/api/edge';
 
+/** Environment filter for smart-review-plan (drill.environment: home | range | net) */
+export type SmartReviewEnvironment = 'home' | 'range' | 'net' | null;
+
 /**
- * Hook to fetch smart review plan
+ * Hook to fetch smart review plan (see supabase/functions/smart-review-plan).
+ * environment filters drills by where you can practice.
  */
 export function useSmartReviewPlan(
   budgetMin: number = 10,
-  environment: string | null = null
+  environment: SmartReviewEnvironment = null
 ) {
   const [plan, setPlan] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(
-    async (budget?: number, env?: string | null) => {
+    async (budget?: number, env?: SmartReviewEnvironment) => {
       setLoading(true);
       setError(null);
 
