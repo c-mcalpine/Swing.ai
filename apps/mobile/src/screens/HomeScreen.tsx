@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,14 @@ import {
   ImageBackground,
   SafeAreaView,
 } from 'react-native';
+import { BellIcon, BellRingingIcon } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '@/lib/AuthContext';
 import { useUserProfile, useStreak } from '@/hooks/useProfile';
 import { useDailyLesson } from '@/hooks/useLessonProgress';
 import { useQuickDrills } from '@/hooks/useDrillAssignment';
+import { UserCircleIcon } from 'phosphor-react-native';
 import { BottomNav } from '@/components/BottomNav';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
@@ -36,7 +38,7 @@ export function HomeScreen() {
   const { data: dailyLessonData, loading: lessonLoading } = useDailyLesson(userId);
   const { data: quickDrillsData, loading: drillsLoading } = useQuickDrills(userId, 2);
 
-  // Loading state
+  const [hasUnreadNotifications] = useState(false);
   const isLoading = profileLoading || streakLoading || lessonLoading || drillsLoading;
 
   // Calculate percentile from rank (placeholder logic)
@@ -58,7 +60,7 @@ export function HomeScreen() {
         streak: streak,
         rank: profile.rank_title || 'Beginner',
         percentile: getPercentile(profile.level),
-        profileImage: profile.avatar_url || 'https://via.placeholder.com/150',
+        profileImage: profile.avatar_url || null,
       }
     : null;
 
@@ -162,10 +164,13 @@ export function HomeScreen() {
         <View style={styles.headerContent}>
           <View style={styles.profile}>
             <View style={styles.profileAvatarWrapper}>
-              <Image
-                source={{ uri: user.profileImage }}
-                style={styles.profileAvatar}
-              />
+              {user.profileImage ? (
+                <Image source={{ uri: user.profileImage }} style={styles.profileAvatar} />
+              ) : (
+                <View style={styles.profileAvatarFallback}>
+                  <UserCircleIcon color={colors.gray[500]} size={28} weight="duotone" />
+                </View>
+              )}
               <View style={styles.profileLevel}>
                 <Text style={styles.profileLevelText}>Lvl {user.level}</Text>
               </View>
@@ -176,8 +181,12 @@ export function HomeScreen() {
             </View>
           </View>
           <TouchableOpacity style={styles.notificationBtn}>
-            <Text style={styles.notificationIcon}>🔔</Text>
-            <View style={styles.notificationBadge} />
+            {hasUnreadNotifications ? (
+              <BellRingingIcon size={24} color={colors.white} weight="duotone" />
+            ) : (
+              <BellIcon size={24} color={colors.white} weight="regular" />
+            )}
+            {hasUnreadNotifications && <View style={styles.notificationBadge} />}
           </TouchableOpacity>
         </View>
       </View>
@@ -430,6 +439,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     borderColor: colors.primary,
+  },
+  profileAvatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: '#1c271f',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   profileLevel: {
     position: 'absolute',

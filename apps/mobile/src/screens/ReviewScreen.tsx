@@ -20,6 +20,7 @@ import { HeroCard, HorizontalCard } from '@/components/Card';
 import { BottomNav } from '@/components/BottomNav';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
+import { BrainIcon } from 'phosphor-react-native';
 
 type ReviewScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Review'>;
 
@@ -173,19 +174,6 @@ export function ReviewScreen() {
               <Text style={styles.retentionIcon}>🧠</Text>
               <Text style={styles.retentionText}>RETENTION: --</Text>
             </View>
-            <TouchableOpacity
-              style={styles.profileAvatar}
-              onPress={() => navigation.navigate('Profile')}
-            >
-              <Image
-                source={{
-                  uri:
-                    profile?.avatar_url ||
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuBfBPSEK00wDz93EIwdYTY8evnDnh2lX2ML1olL_jgLkz7wFJJYHXVjHzUDtAYZx5cYW3koBEcbDiupzmrm9_qA9KxRzJj6gvcAqoGLsS-YMHu_O2EYP4Ep5XdiFXETxAv28KSOfwiUGXmAyYlaqx5Dh6jGTaRmytRdXMYHe_sjslNa8znEGpIzR1WKi9RrheKqvgnbl7ysyhW-0cxIJs3IdqUo67y-I-I-9Ups2XeH4Rzaqzy6T00zru7p2EwSP9TAedttJEJreFQ',
-                }}
-                style={styles.profileAvatarImage}
-              />
-            </TouchableOpacity>
           </View>
           <Text style={styles.title}>Smart Review</Text>
         </View>
@@ -210,24 +198,11 @@ export function ReviewScreen() {
         <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.retentionPill}>
-            <Text style={styles.retentionIcon}>🧠</Text>
+            <BrainIcon size={20} color={colors.white} weight="regular" />
             <Text style={styles.retentionText}>
               RETENTION: {retentionScore !== null ? `${retentionScore}%` : '--%'}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.profileAvatar}
-            onPress={() => navigation.navigate('Profile')}
-          >
-            <Image
-              source={{
-                uri:
-                  profile?.avatar_url ||
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuBfBPSEK00wDz93EIwdYTY8evnDnh2lX2ML1olL_jgLkz7wFJJYHXVjHzUDtAYZx5cYW3koBEcbDiupzmrm9_qA9KxRzJj6gvcAqoGLsS-YMHu_O2EYP4Ep5XdiFXETxAv28KSOfwiUGXmAyYlaqx5Dh6jGTaRmytRdXMYHe_sjslNa8znEGpIzR1WKi9RrheKqvgnbl7ysyhW-0cxIJs3IdqUo67y-I-I-9Ups2XeH4Rzaqzy6T00zru7p2EwSP9TAedttJEJreFQ',
-              }}
-              style={styles.profileAvatarImage}
-            />
-          </TouchableOpacity>
         </View>
         <Text style={styles.title}>Smart Review</Text>
       </View>
@@ -299,14 +274,12 @@ export function ReviewScreen() {
                   if (upNextLesson.item) {
                     const item = upNextLesson.item;
                     if (item.item_type === 'lesson') {
-                      // @ts-ignore
                       navigation.navigate('DailyLesson', {
                         lessonId: item.item_id,
                         fromSmartReview: true,
                         reviewItem: item,
                       });
                     } else {
-                      // @ts-ignore
                       navigation.navigate('DrillDetails', {
                         drillId: item.item_id,
                         fromSmartReview: true,
@@ -409,14 +382,12 @@ export function ReviewScreen() {
                       if (drill.item) {
                         const item = drill.item;
                         if (item.item_type === 'lesson') {
-                          // @ts-ignore
                           navigation.navigate('DailyLesson', {
                             lessonId: item.item_id,
                             fromSmartReview: true,
                             reviewItem: item,
                           });
                         } else {
-                          // @ts-ignore
                           navigation.navigate('DrillDetails', {
                             drillId: item.item_id,
                             fromSmartReview: true,
@@ -502,19 +473,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.6,
-  },
-  profileAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1c271f',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    overflow: 'hidden',
-  },
-  profileAvatarImage: {
-    width: '100%',
-    height: '100%',
   },
   title: {
     fontSize: 24,

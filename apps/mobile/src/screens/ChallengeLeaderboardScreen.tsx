@@ -9,6 +9,7 @@ import {
   Image,
   SafeAreaView,
 } from 'react-native';
+import { BellIcon, BellRingingIcon, TrophyIcon } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '@/lib/AuthContext';
@@ -33,6 +34,7 @@ export function ChallengeLeaderboardScreen() {
 
   const [activeView, setActiveView] = useState<'leaderboards' | 'events'>('leaderboards');
   const [activeFilter, setActiveFilter] = useState<'global' | 'friends' | 'club'>('global');
+  const [hasUnreadNotifications] = useState(false);
 
   // Fetch leaderboard data
   const { data: leaderboardData, loading: leaderboardLoading, error: leaderboardError } = useWeeklyLeaderboard(50);
@@ -111,11 +113,15 @@ export function ChallengeLeaderboardScreen() {
         <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={[styles.iconBadge, styles.iconBadgeTrophy]}>
-            <Text style={styles.iconBadgeIcon}>🏆</Text>
+            <TrophyIcon size={24} color={colors.white} weight="regular" />
           </View>
           <Text style={styles.title}>Arena</Text>
           <View style={styles.iconBadge}>
-            <Text style={styles.iconBadgeIcon}>🔔</Text>
+            {hasUnreadNotifications ? (
+              <BellRingingIcon size={24} color={colors.white} weight="duotone" />
+            ) : (
+              <BellIcon size={24} color={colors.white} weight="regular" />
+            )}
           </View>
         </View>
 

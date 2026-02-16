@@ -9,11 +9,13 @@ import {
   Image,
   SafeAreaView,
   Alert,
+  Pressable,
+  type ViewStyle,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Polygon, Line, Circle } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
-import { CameraIcon, UserCircleIcon } from 'phosphor-react-native';
+import { CameraIcon, GearIcon, SignOutIcon, UserCircleIcon } from 'phosphor-react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useUserProfile } from '@/hooks/useProfile';
 import { useRecentSessions } from '@/hooks/useSessions';
@@ -28,7 +30,7 @@ import { updateProfile } from '@/api/profile';
  */
 export function ProfileScreen() {
   const navigation = useNavigation();
-  const { userId } = useAuth();
+  const { userId, signOut } = useAuth();
 
   // Fetch data using hooks
   const {
@@ -42,6 +44,7 @@ export function ProfileScreen() {
   const { data: allAchievements, loading: allAchievementsLoading } = useAllAchievements();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarUpdating, setAvatarUpdating] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const isLoading =
     profileLoading || sessionsLoading || achievementsLoading || allAchievementsLoading;
@@ -227,16 +230,45 @@ export function ProfileScreen() {
     ]);
   };
 
+  const handleLogOut = async () => {
+    setSettingsOpen(false);
+    await signOut();
+  };
+
+  const renderSettingsMenu = () => {
+    if (!settingsOpen) return null;
+    return (
+      <>
+        <Pressable
+          style={styles.settingsBackdrop}
+          onPress={() => setSettingsOpen(false)}
+          accessibilityLabel="Close menu"
+        />
+        <View style={styles.settingsDropdown}>
+          <TouchableOpacity
+            style={styles.settingsDropdownItem}
+            onPress={handleLogOut}
+            activeOpacity={0.7}
+          >
+            <SignOutIcon size={18} color={colors.error} weight="regular" />
+            <Text style={styles.settingsDropdownItemText}>Log out</Text>
+          </TouchableOpacity>
+        </View>
+      </>
+    );
+  };
+
   // Loading state
   if (isLoading) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
-          <TouchableOpacity style={styles.settingsBtn}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
+          <TouchableOpacity style={styles.settingsBtn} onPress={() => setSettingsOpen(true)}>
+            <GearIcon size={24} color={colors.white} weight="regular" />
           </TouchableOpacity>
         </View>
+        {renderSettingsMenu()}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading profile...</Text>
@@ -252,10 +284,11 @@ export function ProfileScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
-          <TouchableOpacity style={styles.settingsBtn}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
+          <TouchableOpacity style={styles.settingsBtn} onPress={() => setSettingsOpen(true)}>
+            <GearIcon size={24} color={colors.white} weight="regular" />
           </TouchableOpacity>
         </View>
+        {renderSettingsMenu()}
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>⚠️</Text>
           <Text style={styles.errorMessage}>Failed to load profile.</Text>
@@ -271,10 +304,11 @@ export function ProfileScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
-          <TouchableOpacity style={styles.settingsBtn}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
+          <TouchableOpacity style={styles.settingsBtn} onPress={() => setSettingsOpen(true)}>
+            <GearIcon size={24} color={colors.white} weight="regular" />
           </TouchableOpacity>
         </View>
+        {renderSettingsMenu()}
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>👤</Text>
           <Text style={styles.errorMessage}>No profile found for this user.</Text>
@@ -289,11 +323,12 @@ export function ProfileScreen() {
       {/* Top App Bar */}
       <SafeAreaView style={styles.safeAreaTop}>
         <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
-        <TouchableOpacity style={styles.settingsBtn}>
-          <Text style={styles.settingsIcon}>⚙️</Text>
-        </TouchableOpacity>
-      </View>
+          <Text style={styles.title}>Profile</Text>
+          <TouchableOpacity style={styles.settingsBtn} onPress={() => setSettingsOpen(true)}>
+            <GearIcon size={24} color={colors.white} weight="regular" />
+          </TouchableOpacity>
+        </View>
+        {renderSettingsMenu()}
       </SafeAreaView>
 
       {/* Scrollable Content */}
@@ -445,7 +480,7 @@ export function ProfileScreen() {
                     style={[
                       styles.badgeCircle,
                       badge.unlocked
-                        ? styles[`badgeCircle${badge.color.charAt(0).toUpperCase() + badge.color.slice(1)}` as keyof typeof styles]
+                        ? (styles[`badgeCircle${badge.color.charAt(0).toUpperCase() + badge.color.slice(1)}` as keyof typeof styles] as ViewStyle)
                         : styles.badgeCircleLocked,
                     ]}
                   >
@@ -584,8 +619,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 20,
   },
-  settingsIcon: {
-    fontSize: 24,
+  settingsBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+  },
+  settingsDropdown: {
+    position: 'absolute',
+    top: 56,
+    right: 16,
+    zIndex: 101,
+    minWidth: 140,
+    backgroundColor: '#1c271f',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  settingsDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  settingsDropdownItemText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.error,
   },
 
   // Content

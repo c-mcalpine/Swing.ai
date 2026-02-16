@@ -27,9 +27,9 @@ export type AppStackParamList = {
   Review: undefined;
   ChallengeLeaderboard: undefined;
   PersonalizedPlan: undefined;
-  DailyLesson: { lessonId?: number };
+  DailyLesson: { lessonId?: number; fromSmartReview?: boolean; reviewItem?: { item_type: 'drill' | 'lesson'; item_id: number; issue_slug?: string | null; [key: string]: unknown } };
   QuickDrills: undefined;
-  DrillDetails: { drillId: number };
+  DrillDetails: { drillId: number; fromSmartReview?: boolean; reviewItem?: { item_type: 'drill' | 'lesson'; item_id: number; issue_slug?: string | null; [key: string]: unknown } };
   InitialSwingSetup: undefined;
   SwingRecording: { club?: string }; // Optional club parameter
   SwingDiagnosticView: { diagnosticId?: number };
