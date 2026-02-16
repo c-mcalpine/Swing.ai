@@ -5,7 +5,7 @@
     "scheme": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/Dialed Logo.png",
+    "icon": "./assets/Dialed Logo Transparent.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {

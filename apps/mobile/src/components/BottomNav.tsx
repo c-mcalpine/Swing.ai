@@ -1,23 +1,33 @@
-import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppStackParamList } from '@/navigation/AppStack';
-import { colors, spacing } from '@/styles/tokens';
+import { colors } from '@/styles/tokens';
+
+import {
+  HouseIcon,
+  BookOpenIcon,
+  PlusIcon,
+  TrophyIcon,
+  UserIcon,
+} from 'phosphor-react-native';
 
 type NavItem = {
-  id: string;
+  id: 'home' | 'review' | 'capture' | 'challenge' | 'profile';
   label: string;
-  icon: string;
   screen: keyof AppStackParamList;
+  isPrimary?: boolean;
+  Icon: React.ComponentType<{ size?: number; color?: string; weight?: any}>;
 };
 
 const navItems: NavItem[] = [
-  { id: 'home', label: 'Home', icon: '🏠', screen: 'Home' },
-  { id: 'review', label: 'Review', icon: '📚', screen: 'Review' },
-  { id: 'capture', label: 'Record', icon: '+', screen: 'Capture' },
-  { id: 'challenge', label: 'Challenge', icon: '🏆', screen: 'ChallengeLeaderboard' },
-  { id: 'profile', label: 'Profile', icon: '👤', screen: 'Profile' },
+  { id: 'home', label: 'Home', screen: 'Home', Icon: HouseIcon },
+  { id: 'review', label: 'Review', screen: 'Review', Icon: BookOpenIcon },
+  { id: 'capture', label: 'Record', screen: 'Capture', isPrimary: true, Icon: PlusIcon },
+  { id: 'challenge', label: 'Challenge', screen: 'ChallengeLeaderboard', Icon: TrophyIcon },
+  { id: 'profile', label: 'Profile', screen: 'Profile', Icon: UserIcon },
 ];
 
 interface BottomNavProps {
@@ -27,11 +37,11 @@ interface BottomNavProps {
 export function BottomNav({ activePage }: BottomNavProps) {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
 
-  // Determine active page from route if not explicitly provided
-  const getCurrentPage = () => {
+  const currentPage = useMemo(() => {
     if (activePage) return activePage;
-    
+
     const routeName = route.name.toLowerCase();
     if (routeName === 'home') return 'home';
     if (routeName === 'review') return 'review';
@@ -39,54 +49,44 @@ export function BottomNav({ activePage }: BottomNavProps) {
     if (routeName === 'challengeleaderboard') return 'challenge';
     if (routeName === 'profile') return 'profile';
     return null;
-  };
-
-  const currentPage = getCurrentPage();
+  }, [activePage, route.name]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       <View style={styles.innerContainer}>
         {navItems.map((item) => {
-          if (item.id === 'capture') {
-            // Render floating action button
+          const isActive = currentPage === item.id;
+          const color = isActive ? colors.primary : colors.textSecondary;
+
+          if (item.isPrimary) {
             return (
               <View key={item.id} style={styles.fabWrapper}>
                 <TouchableOpacity
                   style={styles.fab}
-                  onPress={() => {
-                    // @ts-ignore - navigate to Capture screen
-                    navigation.navigate(item.screen);
-                  }}
+                  onPress={() => navigation.navigate({ name: item.screen as any, params: undefined })}
                   accessibilityLabel={item.label}
                   accessibilityRole="button"
-                  activeOpacity={0.8}
+                  activeOpacity={0.85}
                 >
-                  <Text style={styles.fabIcon}>{item.icon}</Text>
+                  <item.Icon size={26} color={colors.black} weight="bold" />
                 </TouchableOpacity>
               </View>
             );
           }
 
-          const isActive = currentPage === item.id;
           return (
             <TouchableOpacity
               key={item.id}
               style={styles.navButton}
-              onPress={() => {
-                // @ts-ignore - navigate to bottom nav screen (animation: 'none' set in AppStack)
-                navigation.navigate(item.screen);
-              }}
+              onPress={() => navigation.navigate({ name: item.screen as any, params: undefined })}
               accessibilityLabel={item.label}
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
             >
-              <Text style={[styles.icon, isActive && styles.iconActive]}>
-                {item.icon}
-              </Text>
-              <Text style={[styles.label, isActive && styles.labelActive]}>
-                {item.label}
-              </Text>
+              <item.Icon size={24} color={color} weight={isActive ? 'bold' : 'regular'} />
+              {/* active-label-only (cleaner + less visual noise) */}
+              {isActive ? <Text style={[styles.label, styles.labelActive]}>{item.label}</Text> : <View style={{ height: 12 }} />}
             </TouchableOpacity>
           );
         })}
@@ -101,67 +101,64 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(21, 31, 24, 0.95)',
+    backgroundColor: 'rgba(13, 25, 18, 0.92)', // closer to backgroundDark
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
     zIndex: 50,
   },
   innerContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-around',
     height: 72,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
   },
   navButton: {
     flex: 1,
-    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100%',
-    gap: 4,
+    gap: 6,
     paddingVertical: 8,
   },
+
   fabWrapper: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -32, // Lift FAB above nav bar
+    marginTop: -34,
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
-    elevation: 8,
-    borderWidth: 4,
-    borderColor: colors.background,
+
+    // ring that matches your UI (looks more premium than a thick border)
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 18,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
   },
-  fabIcon: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  icon: {
-    fontSize: 26,
-    color: '#6b7280',
-  },
-  iconActive: {
-    color: colors.primary,
-  },
+
   label: {
     fontSize: 10,
-    fontWeight: '500',
-    color: '#6b7280',
+    fontWeight: '600',
+    color: colors.primary,
+    opacity: 0.95,
   },
   labelActive: {
     color: colors.primary,
-    fontWeight: '600',
   },
 });

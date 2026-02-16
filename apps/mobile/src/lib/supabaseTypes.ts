@@ -1049,6 +1049,13 @@ export interface Database {
           idempotency_key: string | null;
           occurred_at: string;
           created_at: string;
+          base_xp: number;
+          quality_mult: number;
+          novelty_mult: number;
+          streak_mult: number;
+          diminishing_mult: number;
+          meta: Json;
+          computed_xp: number | null;
         };
         Insert: {
           user_id: string;
@@ -1059,6 +1066,12 @@ export interface Database {
           idempotency_key?: string | null;
           occurred_at?: string;
           created_at?: string;
+          base_xp?: number;
+          quality_mult?: number;
+          novelty_mult?: number;
+          streak_mult?: number;
+          diminishing_mult?: number;
+          meta?: Json;
         };
         Update: {
           user_id?: string;
@@ -1069,6 +1082,84 @@ export interface Database {
           idempotency_key?: string | null;
           occurred_at?: string;
           created_at?: string;
+          base_xp?: number;
+          quality_mult?: number;
+          novelty_mult?: number;
+          streak_mult?: number;
+          diminishing_mult?: number;
+          meta?: Json;
+        };
+        Relationships: [];
+      };
+      user_daily_xp_activity: {
+        Row: {
+          user_id: string;
+          activity_day: string;
+          drills_count: number;
+          reviews_count: number;
+          captures_count: number;
+          challenges_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          activity_day: string;
+          drills_count?: number;
+          reviews_count?: number;
+          captures_count?: number;
+          challenges_count?: number;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          activity_day?: string;
+          drills_count?: number;
+          reviews_count?: number;
+          captures_count?: number;
+          challenges_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_streak: {
+        Row: {
+          user_id: string;
+          current_streak: number;
+          last_active_day: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          current_streak?: number;
+          last_active_day?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          current_streak?: number;
+          last_active_day?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      weekly_xp_user: {
+        Row: {
+          week_start: string;
+          user_id: string;
+          xp_week: number;
+          updated_at: string;
+        };
+        Insert: {
+          week_start: string;
+          user_id: string;
+          xp_week?: number;
+          updated_at?: string;
+        };
+        Update: {
+          week_start?: string;
+          user_id?: string;
+          xp_week?: number;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -1089,7 +1180,20 @@ export interface Database {
       };
     }
     Functions: {
-      [_ in never]: never
+      award_xp: {
+        Args: {
+          p_source_type: string;
+          p_source_id: number;
+          p_reason?: string | null;
+          p_meta?: Json;
+          p_idempotency_key?: string | null;
+        };
+        Returns: Array<{
+          xp_awarded: number;
+          new_total_xp: number;
+          week_xp: number;
+        }>;
+      };
     }
     Enums: {
       [_ in never]: never

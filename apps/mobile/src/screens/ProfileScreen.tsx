@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,19 @@ import {
   ActivityIndicator,
   Image,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Polygon, Line, Circle } from 'react-native-svg';
+import * as ImagePicker from 'expo-image-picker';
+import { CameraIcon, UserCircleIcon } from 'phosphor-react-native';
 import { useAuth } from '@/lib/AuthContext';
 import { useUserProfile } from '@/hooks/useProfile';
 import { useRecentSessions } from '@/hooks/useSessions';
 import { useUserAchievements, useAllAchievements } from '@/hooks/useAchievements';
 import { BottomNav } from '@/components/BottomNav';
 import { colors, spacing } from '@/styles/tokens';
+import { updateProfile } from '@/api/profile';
 
 /**
  * Profile Screen - User profile with stats, achievements, and recent sessions
@@ -27,10 +31,17 @@ export function ProfileScreen() {
   const { userId } = useAuth();
 
   // Fetch data using hooks
-  const { data: profileData, loading: profileLoading, error: profileError } = useUserProfile();
+  const {
+    data: profileData,
+    loading: profileLoading,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useUserProfile();
   const { data: sessionsData, loading: sessionsLoading } = useRecentSessions(userId, 3);
   const { data: userAchievements, loading: achievementsLoading } = useUserAchievements(userId);
   const { data: allAchievements, loading: allAchievementsLoading } = useAllAchievements();
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarUpdating, setAvatarUpdating] = useState(false);
 
   const isLoading =
     profileLoading || sessionsLoading || achievementsLoading || allAchievementsLoading;
@@ -63,7 +74,7 @@ export function ProfileScreen() {
         memberSince: formatMemberSince(
           (profileData as any).member_since || profileData.created_at
         ),
-        avatar: profileData.avatar_url || 'https://via.placeholder.com/150',
+        avatar: profileData.avatar_url || null,
         badge: (profileData as any).badge || 'PLAYER',
         rank: profileData.rank_title || 'Beginner',
         xp: profileData.xp || 0,
@@ -149,6 +160,72 @@ export function ProfileScreen() {
     : [];
 
   const radarPointsStr = radarPoints.map((p) => `${p.x},${p.y}`).join(' ');
+  const resolvedAvatarUri = avatarUri || profile?.avatar || null;
+
+  const saveAvatarUri = async (nextAvatarUri: string) => {
+    const previousAvatarUri = resolvedAvatarUri;
+    setAvatarUpdating(true);
+    setAvatarUri(nextAvatarUri);
+
+    try {
+      await updateProfile({ avatar_url: nextAvatarUri });
+      refetchProfile();
+    } catch (error) {
+      setAvatarUri(previousAvatarUri);
+      Alert.alert('Unable to update photo', 'Please try again in a moment.');
+    } finally {
+      setAvatarUpdating(false);
+    }
+  };
+
+  const chooseFromLibrary = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        'Permission needed',
+        'Allow photo library access to choose a profile picture.'
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.length) {
+      await saveAvatarUri(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Allow camera access to take a profile picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.length) {
+      await saveAvatarUri(result.assets[0].uri);
+    }
+  };
+
+  const handleAvatarPress = () => {
+    Alert.alert('Set Profile Picture', 'Choose where your photo comes from.', [
+      { text: 'Photo Library', onPress: chooseFromLibrary },
+      { text: 'Take Photo', onPress: takePhoto },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
 
   // Loading state
   if (isLoading) {
@@ -223,12 +300,34 @@ export function ProfileScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <View style={styles.avatarWrapper}>
-            <Image source={{ uri: profile.avatar }} style={styles.avatar} />
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            onPress={handleAvatarPress}
+            activeOpacity={0.85}
+            disabled={avatarUpdating}
+            accessibilityRole="button"
+            accessibilityLabel="Set profile picture"
+          >
+            {resolvedAvatarUri ? (
+              <Image source={{ uri: resolvedAvatarUri }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <UserCircleIcon color={colors.gray[500]} size={96} weight="duotone" />
+              </View>
+            )}
+            {avatarUpdating ? (
+              <View style={styles.avatarLoadingOverlay}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            ) : null}
+            <View style={styles.avatarEditPill}>
+              <CameraIcon color={colors.background} size={12} weight="bold" />
+              <Text style={styles.avatarEditText}>Edit</Text>
+            </View>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{profile.badge}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
           <View style={styles.profileInfo}>
             <Text style={styles.username}>{profile.username}</Text>
             <Text style={styles.meta}>
@@ -535,6 +634,49 @@ const styles = StyleSheet.create({
   profileInfo: {
     marginTop: 16,
     alignItems: 'center',
+  },
+  avatarFallback: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    borderWidth: 4,
+    borderColor: colors.primary,
+    backgroundColor: '#1c271f',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  avatarLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 64,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarEditPill: {
+    position: 'absolute',
+    bottom: -10,
+    left: '50%',
+    transform: [{ translateX: -28 }],
+    minWidth: 56,
+    height: 24,
+    borderRadius: 9999,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 4,
+    borderWidth: 2,
+    borderColor: colors.background,
+  },
+  avatarEditText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.background,
   },
   username: {
     fontSize: 24,

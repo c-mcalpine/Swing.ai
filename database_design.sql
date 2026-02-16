@@ -369,6 +369,17 @@ CREATE TABLE public.user_achievement (
   CONSTRAINT user_achievement_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT user_achievement_achievement_id_fkey FOREIGN KEY (achievement_id) REFERENCES public.achievement(id)
 );
+CREATE TABLE public.user_daily_xp_activity (
+  user_id uuid NOT NULL,
+  activity_day date NOT NULL,
+  drills_count integer NOT NULL DEFAULT 0,
+  reviews_count integer NOT NULL DEFAULT 0,
+  captures_count integer NOT NULL DEFAULT 0,
+  challenges_count integer NOT NULL DEFAULT 0,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_daily_xp_activity_pkey PRIMARY KEY (user_id, activity_day),
+  CONSTRAINT user_daily_xp_activity_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
 CREATE TABLE public.user_drill_assignment (
   id bigint NOT NULL DEFAULT nextval('user_drill_assignment_id_seq'::regclass),
   user_id uuid NOT NULL,
@@ -463,6 +474,14 @@ CREATE TABLE public.user_review_item (
   CONSTRAINT user_review_item_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT user_review_item_issue_slug_fkey FOREIGN KEY (issue_slug) REFERENCES public.swing_error(slug)
 );
+CREATE TABLE public.user_streak (
+  user_id uuid NOT NULL,
+  current_streak integer NOT NULL DEFAULT 0,
+  last_active_day date,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_streak_pkey PRIMARY KEY (user_id),
+  CONSTRAINT user_streak_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
 CREATE TABLE public.weekly_xp_user (
   week_start timestamp with time zone NOT NULL,
   user_id uuid NOT NULL,
@@ -481,6 +500,13 @@ CREATE TABLE public.xp_event (
   occurred_at timestamp with time zone NOT NULL DEFAULT now(),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   idempotency_key text UNIQUE,
+  base_xp integer NOT NULL DEFAULT 0,
+  quality_mult numeric NOT NULL DEFAULT 1,
+  novelty_mult numeric NOT NULL DEFAULT 1,
+  streak_mult numeric NOT NULL DEFAULT 1,
+  diminishing_mult numeric NOT NULL DEFAULT 1,
+  meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+  computed_xp integer DEFAULT round((((((base_xp)::numeric * quality_mult) * novelty_mult) * streak_mult) * diminishing_mult)),
   CONSTRAINT xp_event_pkey PRIMARY KEY (id),
   CONSTRAINT xp_event_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );

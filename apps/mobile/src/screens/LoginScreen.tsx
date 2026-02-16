@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     fontSize: typography.fontSize.md,
-    color: colors.textPrimary,
+    color: colors.black,
   },
   button: {
     backgroundColor: colors.primary,

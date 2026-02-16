@@ -110,6 +110,36 @@ export function DrillDetailsScreen() {
 
   const progressPercentage = (reps / goalReps) * 100;
 
+  const handleMarkComplete = async () => {
+    if (reps === 0) {
+      Alert.alert('Complete at least one rep', 'Track your practice by completing at least one repetition.');
+      return;
+    }
+
+    try {
+      const score = Math.min(1, reps / goalReps); // 0-1 score based on goal completion
+      const durationMin = Math.ceil((reps * 2) / 60); // Estimate 2 mins per rep
+      
+      await submitReview({
+        item_type: 'drill',
+        item_id: drillId,
+        score,
+        issue_slug: reviewItem?.issue_slug || null,
+        duration_min: durationMin,
+      });
+
+      Alert.alert('Great work!', 'Your practice has been recorded.', [
+        {
+          text: 'Continue',
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } catch (error) {
+      console.error('Failed to mark complete:', error);
+      Alert.alert('Error', 'Failed to save your progress. Please try again.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Top App Bar */}

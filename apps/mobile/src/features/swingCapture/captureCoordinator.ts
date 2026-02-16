@@ -16,6 +16,7 @@ import * as VideoThumbnails from 'expo-video-thumbnails';
 import { Video } from 'expo-av';
 import { supabase } from '@/lib/supabase';
 import { edgeFunctions } from '@/api/edge';
+import { awardXp } from '@/lib/xp';
 import {
   extractKeyframes,
   generateSwingOptimizedTimestamps,
@@ -247,7 +248,22 @@ export class CaptureCoordinator {
       // Stage 10: Trigger analysis
       onProgress?.('Starting AI analysis', 0.95);
       try {
-        await edgeFunctions.analyzeSwing({ capture_id: captureId });
+        const analysisResult = await edgeFunctions.analyzeSwing({ capture_id: captureId });
+        
+        // Award XP for swing capture
+        try {
+          await awardXp({
+            sourceType: 'swing_capture',
+            sourceId: captureId,
+            meta: {
+              overall_confidence: analysisResult.analysis.confidence,
+              picked_takeaway: true
+            }
+          });
+        } catch (xpError) {
+          console.error('Failed to award XP for swing capture:', xpError);
+          // Don't fail capture if XP award fails
+        }
       } catch (error) {
         console.error('Failed to trigger analysis:', error);
         // Don't fail the capture if analysis fails - user can retry later
