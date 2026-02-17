@@ -14,6 +14,7 @@
       "backgroundColor": "#000000"
     },
     "ios": {
+      "projectName": "Dialed",
       "supportsTablet": true,
       "bundleIdentifier": "com.christianmcalpine.dialed",
       "icon": {
