@@ -12,6 +12,7 @@ import { QuickDrillsScreen } from '@/screens/QuickDrillsScreen';
 import { DrillDetailsScreen } from '@/screens/DrillDetailsScreen';
 import { InitialSwingSetupScreen } from '@/screens/InitialSwingSetupScreen';
 import { SwingRecordingScreen } from '@/screens/SwingRecordingScreen';
+import { SwingPhaseReviewScreen } from '@/screens/SwingPhaseReviewScreen';
 import { SwingDiagnosticViewScreen } from '@/screens/SwingDiagnosticViewScreen';
 
 /**
@@ -32,6 +33,7 @@ export type AppStackParamList = {
   DrillDetails: { drillId: number; fromSmartReview?: boolean; reviewItem?: { item_type: 'drill' | 'lesson'; item_id: number; issue_slug?: string | null; [key: string]: unknown } };
   InitialSwingSetup: undefined;
   SwingRecording: { club?: string }; // Optional club parameter
+  SwingPhaseReview: { videoUri: string; club?: string };
   SwingDiagnosticView: { diagnosticId?: number };
 };
 
@@ -157,6 +159,14 @@ export function AppStack() {
         name="SwingRecording" 
         component={SwingRecordingScreen}
         options={{ 
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="SwingPhaseReview"
+        component={SwingPhaseReviewScreen}
+        options={{
           headerShown: false,
           animation: 'slide_from_right',
         }}

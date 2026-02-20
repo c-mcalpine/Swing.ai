@@ -11,7 +11,7 @@
  * 7. Clean up temporary files
  */
 
-import * as FileSystem from 'expo-file-system';
+import { File } from 'expo-file-system';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { supabase } from '@/lib/supabase';
 import { edgeFunctions } from '@/api/edge';
@@ -19,7 +19,6 @@ import { awardXp } from '@/lib/xp';
 import {
   extractKeyframes,
   generateSwingOptimizedTimestamps,
-  cleanupKeyframes,
 } from './keyframes/extractKeyframes';
 import { createPoseExtractor, IPoseExtractor } from './pose/PoseExtractor';
 import { tagSwingPhases, calculatePoseMetrics } from './pose/poseAnalysis';
@@ -33,6 +32,9 @@ import {
   PoseSummaryV1,
   KeyframeData,
   CaptureResult,
+  ManualPhaseMark,
+  SwingPhase,
+  PoseLandmark,
 } from './types/pose';
 
 /**
@@ -42,6 +44,7 @@ export interface CaptureConfig {
   generateOverlays?: boolean; // Default: true
   targetFrameCount?: number; // Default: 10
   club?: string;
+  manualPhaseMarks?: ManualPhaseMark[];
 }
 
 /**
@@ -58,6 +61,43 @@ function generateUUID(): string {
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+function mapManualToSwingPhase(phase: ManualPhaseMark['phase']): SwingPhase {
+  switch (phase) {
+    case 'setup':
+      return 'address';
+    case 'takeaway':
+      return 'takeaway';
+    case 'backswing':
+      return 'backswing';
+    case 'top':
+      return 'top';
+    case 'downswing':
+      return 'downswing';
+    case 'impact':
+      return 'impact';
+    case 'release':
+      return 'transition';
+    case 'follow_through':
+      return 'follow_through';
+    default:
+      return 'address';
+  }
+}
+
+function hasRequiredLandmarks(landmarks: PoseLandmark[]): boolean {
+  const required = [0, 11, 12, 15, 16, 23, 24, 27, 28];
+  return required.every((idx) => {
+    const lm = landmarks[idx];
+    return !!lm && Number.isFinite(lm.x) && Number.isFinite(lm.y);
+  });
+}
+
+function hasVisibilityQuality(landmarks: PoseLandmark[]): boolean {
+  const required = [11, 12, 15, 16, 23, 24];
+  const visible = required.filter((idx) => (landmarks[idx]?.visibility ?? 1) >= 0.45).length;
+  return visible >= 5;
 }
 
 /**
@@ -107,7 +147,7 @@ export class CaptureCoordinator {
       throw new Error('CaptureCoordinator not initialized');
     }
 
-    const { generateOverlays = true, club } = config;
+    const { generateOverlays = true, club, manualPhaseMarks } = config;
 
     // Generate client_capture_id for idempotency
     const clientCaptureId = generateUUID();
@@ -124,10 +164,32 @@ export class CaptureCoordinator {
         videoDurationMs = await this.getVideoDuration(videoUri);
       }
 
-      // Stage 1: Extract keyframes
-      onProgress?.('Extracting keyframes', 0.1);
-      const timestamps = generateSwingOptimizedTimestamps(videoDurationMs);
-      const keyframes = await extractKeyframes(videoUri, timestamps);
+      // Stage 1: Auto-detect swing window (coarse scan + motion), then extract keyframes
+      onProgress?.('Finding swing & extracting keyframes', 0.1);
+      let timestamps: number[] = [];
+      let lockedPhases = new Map<number, SwingPhase>();
+      let manualPhaseSequence: SwingPhase[] = [];
+      const isManualMode = !!manualPhaseMarks && manualPhaseMarks.length > 0;
+
+      if (isManualMode) {
+        // Manual mode is strict: preserve user-selected order and timestamps exactly.
+        timestamps = manualPhaseMarks!.map((m) => m.timestamp_ms);
+        manualPhaseSequence = manualPhaseMarks!.map((m) => mapManualToSwingPhase(m.phase));
+        manualPhaseMarks!.forEach((m) =>
+          lockedPhases.set(m.timestamp_ms, mapManualToSwingPhase(m.phase))
+        );
+      } else {
+        const plan = await generateSwingOptimizedTimestamps(videoUri, videoDurationMs, {
+          poseExtractor: this.poseExtractor!,
+          useAutoWindow: true,
+          bestFrameSelection: true,
+          onProgress: (msg) => onProgress?.(msg, 0.12),
+        });
+        timestamps = plan.timestamps;
+        (plan.lockedPhases ?? []).forEach((m) => lockedPhases.set(m.timestamp_ms, m.phase));
+      }
+
+      const keyframes = await extractKeyframes(videoUri, timestamps, 1.0);
       tempFiles.push(...keyframes.map((kf) => kf.uri));
 
       // Stage 2: Run pose detection
@@ -140,10 +202,27 @@ export class CaptureCoordinator {
         try {
           const poseResult = await this.poseExtractor.detectPose(keyframe.uri);
           
+          const hasQuality =
+            poseResult.confidence >= 0.45 &&
+            hasRequiredLandmarks(poseResult.landmarks) &&
+            hasVisibilityQuality(poseResult.landmarks);
+          if (!hasQuality && !isManualMode) {
+            continue;
+          }
+          if (!hasQuality && isManualMode) {
+            throw new Error(
+              `Selected frame quality too low for ${manualPhaseMarks?.[i]?.phase ?? 'phase'} at ${(keyframe.timestamp_ms / 1000).toFixed(2)}s. Re-tag this frame.`
+            );
+          }
+
           keyframeData.push({
             timestamp_ms: keyframe.timestamp_ms,
-            phase: 'address', // Temporary, will be tagged later
+            phase:
+              isManualMode
+                ? manualPhaseSequence[i] ?? lockedPhases.get(keyframe.timestamp_ms) ?? 'address'
+                : lockedPhases.get(keyframe.timestamp_ms) ?? 'address',
             landmarks: poseResult.landmarks,
+            pose_confidence: poseResult.confidence,
             frameUri: keyframe.uri,
           });
 
@@ -153,24 +232,34 @@ export class CaptureCoordinator {
           );
         } catch (error) {
           console.error(`Pose detection failed for keyframe at ${keyframe.timestamp_ms}ms:`, error);
-          // Continue with other frames instead of failing completely
+          if (isManualMode) {
+            throw new Error(
+              `Pose detection failed for selected ${manualPhaseMarks?.[i]?.phase ?? 'phase'} frame at ${(keyframe.timestamp_ms / 1000).toFixed(2)}s. Re-tag this frame.`
+            );
+          }
+          // Auto mode can skip failed frames.
         }
       }
 
       // Phase 8 exit: ≥8/10 frames with valid pose (or 80% of extracted frames)
-      const minPoseFrames = Math.max(1, Math.ceil(keyframes.length * 0.8));
+      const minPoseFrames = isManualMode
+        ? keyframes.length
+        : Math.max(1, Math.ceil(keyframes.length * 0.8));
       if (keyframeData.length < minPoseFrames) {
         throw new Error(
           `Too few poses detected (${keyframeData.length}/${keyframes.length} frames). Need at least ${minPoseFrames}. Ensure the golfer is fully visible.`
         );
       }
 
-      // Stage 3: Tag swing phases
+      // Stage 3: Tag swing phases unless they were manually/heuristically locked.
       onProgress?.('Analyzing swing phases', 0.6);
-      const phases = tagSwingPhases(keyframeData);
-      keyframeData.forEach((kf, i) => {
-        kf.phase = phases[i];
-      });
+      const hasLockedPhases = isManualMode || keyframeData.some((kf) => lockedPhases.has(kf.timestamp_ms));
+      if (!hasLockedPhases) {
+        const phases = tagSwingPhases(keyframeData);
+        keyframeData.forEach((kf, i) => {
+          kf.phase = phases[i];
+        });
+      }
 
       // Stage 4: Render overlays (optional)
       if (generateOverlays) {
@@ -299,11 +388,12 @@ export class CaptureCoordinator {
    * Clean up temporary files
    */
   private async cleanupTempFiles(files: string[]): Promise<void> {
-    for (const file of files) {
+    for (const filePath of files) {
       try {
-        await FileSystem.deleteAsync(file, { idempotent: true });
+        const file = new File(filePath);
+        if (file.exists) file.delete();
       } catch (error) {
-        console.warn(`Failed to delete temp file ${file}:`, error);
+        console.warn(`Failed to delete temp file ${filePath}:`, error);
       }
     }
   }

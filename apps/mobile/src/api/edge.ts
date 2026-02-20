@@ -1,12 +1,4 @@
 import { supabase } from '@/lib/supabase';
-import Constants from 'expo-constants';
-
-/**
- * Base URL for Supabase Edge Functions
- */
-const EDGE_FUNCTION_BASE_URL = Constants.expoConfig?.extra?.supabaseUrl
-  ? `${Constants.expoConfig.extra.supabaseUrl}/functions/v1`
-  : '';
 
 /**
  * Standard error shape for all edge function calls
@@ -29,40 +21,95 @@ export async function callEdgeFunction<TPayload = any, TResponse = any>(
   functionName: string,
   payload: TPayload
 ): Promise<TResponse> {
-  // Get current session for Authorization header
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  
-  if (sessionError || !session) {
-    throw {
-      error: 'not_authenticated',
-      message: 'You must be signed in to perform this action',
-    } as EdgeFunctionError;
-  }
+  const getValidatedAccessToken = async (): Promise<string> => {
+    // Always refresh and use the returned token directly to avoid session-store races.
+    const { data: refreshedData, error: refreshErr } = await supabase.auth.refreshSession();
+    if (refreshErr || !refreshedData.session?.access_token) {
+      // Fallback to current session if refresh is unavailable but existing token is present.
+      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr || !sessionData.session?.access_token) {
+        throw {
+          error: 'not_authenticated',
+          message: 'You must be signed in to perform this action',
+        } as EdgeFunctionError;
+      }
+      const expMs = (sessionData.session.expires_at ?? 0) * 1000;
+      if (expMs > 0 && expMs < Date.now() + 15_000) {
+        throw {
+          error: 'not_authenticated',
+          message: 'Session expired. Please sign in again.',
+        } as EdgeFunctionError;
+      }
+      return sessionData.session.access_token;
+    }
 
-  const url = `${EDGE_FUNCTION_BASE_URL}/${functionName}`;
-  
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData.user) {
+      throw {
+        error: 'not_authenticated',
+        message: 'Session is invalid. Please sign in again.',
+      } as EdgeFunctionError;
+    }
+    return refreshedData.session.access_token;
+  };
+
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    let accessToken = await getValidatedAccessToken();
 
-    const data = await response.json();
+    const invoke = async (token: string) =>
+      supabase.functions.invoke(functionName, {
+        body: payload as any,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+    let { data, error } = await invoke(accessToken);
+
+    // One retry on Invalid JWT with forced refresh.
+    if (error && `${error.message ?? ''}`.toLowerCase().includes('invalid jwt')) {
+      await supabase.auth.refreshSession();
+      accessToken = await getValidatedAccessToken();
+      ({ data, error } = await invoke(accessToken));
+    }
 
     // Handle error responses
-    if (!response.ok) {
+    if (error) {
+      let detail: string | undefined = error.name || undefined;
+      let message: string | undefined = error.message || 'Failed to call edge function';
+
+      // For FunctionsHttpError, try to parse edge-function JSON body for precise reason.
+      const ctx = (error as any).context;
+      if (ctx && typeof ctx.text === 'function') {
+        try {
+          const raw = await ctx.text();
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              message = parsed.message || parsed.error || message;
+              detail = parsed.detail || raw;
+            } catch {
+              detail = raw;
+            }
+          }
+        } catch {
+          // ignore context parse failures
+        }
+      }
+
+      console.error(`[edge:${functionName}] invoke failed`, {
+        name: error.name,
+        message: error.message,
+        detail,
+      });
       throw {
-        error: data.error || 'request_failed',
-        detail: data.detail,
-        message: data.message || `Request failed with status ${response.status}`,
+        error: 'request_failed',
+        detail,
+        message,
       } as EdgeFunctionError;
     }
 
-    return data as TResponse;
+    return (data ?? {}) as TResponse;
   } catch (error: any) {
     // Network errors, parse errors, etc.
     if (error.error) {

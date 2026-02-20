@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import type { Database } from './supabaseTypes';
 
@@ -15,30 +15,34 @@ if (!supabaseAnonKey) {
 }
 
 /**
- * Custom storage adapter using Expo SecureStore
- * Stores auth tokens securely in iOS Keychain / Android Keystore
+ * Supabase auth storage adapter.
+ *
+ * NOTE:
+ * - SecureStore warns (and may fail) when values exceed ~2KB.
+ * - Supabase session payloads can exceed that size, causing truncated/invalid JWTs.
+ * - AsyncStorage is the recommended store for supabase-js mobile sessions.
  */
-const ExpoSecureStoreAdapter = {
+const SupabaseStorageAdapter = {
   getItem: async (key: string) => {
     try {
-      return await SecureStore.getItemAsync(key);
+      return await AsyncStorage.getItem(key);
     } catch (error) {
-      console.error('[SecureStore] getItem error:', error);
+      console.error('[AsyncStorage] getItem error:', error);
       return null;
     }
   },
   setItem: async (key: string, value: string) => {
     try {
-      await SecureStore.setItemAsync(key, value);
+      await AsyncStorage.setItem(key, value);
     } catch (error) {
-      console.error('[SecureStore] setItem error:', error);
+      console.error('[AsyncStorage] setItem error:', error);
     }
   },
   removeItem: async (key: string) => {
     try {
-      await SecureStore.deleteItemAsync(key);
+      await AsyncStorage.removeItem(key);
     } catch (error) {
-      console.error('[SecureStore] removeItem error:', error);
+      console.error('[AsyncStorage] removeItem error:', error);
     }
   },
 };
@@ -48,7 +52,7 @@ const ExpoSecureStoreAdapter = {
  */
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: ExpoSecureStoreAdapter,
+    storage: SupabaseStorageAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false, // Disable for mobile

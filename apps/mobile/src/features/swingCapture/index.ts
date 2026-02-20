@@ -13,5 +13,7 @@ export type {
   CaptureResult,
   PoseLandmark,
   SwingPhase,
+  ManualSwingPhase,
+  ManualPhaseMark,
   PoseMetrics,
 } from './types/pose';

@@ -15,6 +15,7 @@ const ANALYSIS_CONFIG = {
 type ReqBody = { capture_id: number };
 
 Deno.serve(async (req) => {
+  let failedCaptureId: number | null = null;
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -33,6 +34,7 @@ Deno.serve(async (req) => {
 
     const { capture_id } = (await req.json()) as ReqBody;
     if (!capture_id) return json({ error: "missing_capture_id" }, 400);
+    failedCaptureId = capture_id;
 
     // 1) Fetch capture (RLS ensures only owner can read)
     const { data: capture, error: capErr } = await supabase
@@ -59,8 +61,22 @@ Deno.serve(async (req) => {
 
     // 3) Signed URLs for frames: ONE image per frame (overlay > frame)
     //    Filter to key phases only to reduce LLM cost/latency
-    const KEY_PHASES = ["address", "top", "impact", "follow_through"];
-    const keyFrames = frames.filter((f: any) => KEY_PHASES.includes(f.phase));
+    const KEY_PHASES = ["address", "top", "impact", "follow_through"] as const;
+    const phaseRank = new Map(KEY_PHASES.map((p, i) => [p, i]));
+    const sortedFrames = [...frames].sort((a: any, b: any) => (a.timestamp_ms ?? 0) - (b.timestamp_ms ?? 0));
+    const onePerPhase: Record<string, any> = {};
+    for (const phase of KEY_PHASES) {
+      const candidates = sortedFrames.filter((f: any) => f.phase === phase);
+      if (!candidates.length) continue;
+      // Keep exactly one image per core phase to cap LLM spend.
+      onePerPhase[phase] =
+        phase === "follow_through"
+          ? candidates[candidates.length - 1]
+          : candidates[0];
+    }
+    const keyFrames = Object.entries(onePerPhase)
+      .map(([, frame]) => frame)
+      .sort((a: any, b: any) => (phaseRank.get(a.phase as any) ?? 99) - (phaseRank.get(b.phase as any) ?? 99));
     
     const signedImages: Array<{ phase: string; url: string; kind: "overlay" | "frame" }> = [];
 
@@ -194,6 +210,18 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, capture_id, analysis: parsed });
   } catch (e) {
+    try {
+      if (failedCaptureId != null) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (serviceRoleKey) {
+          const admin = createClient(supabaseUrl, serviceRoleKey);
+          await admin.from("swing_capture").update({ status: "failed" }).eq("id", failedCaptureId);
+        }
+      }
+    } catch {
+      // best-effort status update
+    }
     return json({ error: "unexpected", detail: String(e) }, 500);
   }
 });

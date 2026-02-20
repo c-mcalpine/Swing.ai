@@ -23,6 +23,7 @@ export interface KeyframeData {
   timestamp_ms: number;
   phase: SwingPhase;
   landmarks: PoseLandmark[];
+  pose_confidence?: number;
   frameUri: string; // Local file URI
   overlayUri?: string; // Local file URI (if overlay generated)
 }
@@ -39,6 +40,25 @@ export type SwingPhase =
   | 'downswing'
   | 'impact'
   | 'follow_through';
+
+/**
+ * Manual phase labels used in replay tagging UI.
+ * "release" is mapped to transition/downswing in pipeline.
+ */
+export type ManualSwingPhase =
+  | 'setup'
+  | 'takeaway'
+  | 'backswing'
+  | 'top'
+  | 'downswing'
+  | 'impact'
+  | 'release'
+  | 'follow_through';
+
+export interface ManualPhaseMark {
+  phase: ManualSwingPhase;
+  timestamp_ms: number;
+}
 
 /**
  * Compact metrics derived from pose landmarks

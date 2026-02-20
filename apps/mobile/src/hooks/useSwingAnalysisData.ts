@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import Constants from 'expo-constants';
 import { getSwingAnalysisByCaptureId, SwingAnalysisWithCapture } from '@/api/swingAnalysis';
 import { supabase } from '@/lib/supabase';
+import { edgeFunctions } from '@/api/edge';
 import type { Database } from '@/lib/supabaseTypes';
 
 type SwingAnalysisRow = Database['public']['Tables']['swing_analysis']['Row'];
@@ -102,25 +102,7 @@ export function useSwingAnalysisData(captureId: number | undefined) {
 
     // Trigger analysis again
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
-      const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl ?? '';
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/swing-analysis`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ capture_id: captureId }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to trigger analysis');
-      }
+      await edgeFunctions.analyzeSwing(captureId);
 
       // Restart polling
       startPolling(captureId);

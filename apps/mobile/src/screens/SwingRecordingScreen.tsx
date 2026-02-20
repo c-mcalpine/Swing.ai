@@ -7,8 +7,6 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
-  ActivityIndicator,
-  Modal,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,7 +23,6 @@ import {
 import { IconButton, FilterChip } from '@/components';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
-import { useSwingCapture } from '@/hooks/useSwingCapture';
 
 type SwingRecordingScreenNavigationProp = NativeStackNavigationProp<
   AppStackParamList,
@@ -50,8 +47,6 @@ export function SwingRecordingScreen() {
   const [overlayVisible, setOverlayVisible] = useState(true);
   const [permission, requestPermission] = useCameraPermissions();
   
-  const { state, progress, error, captureId, processCapture, reset } = useSwingCapture();
-
   const clubs = ['Driver', '7 Iron', 'Wedge', 'Putter'];
 
   // Request camera permission on mount
@@ -60,22 +55,6 @@ export function SwingRecordingScreen() {
       requestPermission();
     }
   }, [permission]);
-
-  // Navigate to analysis when processing completes
-  useEffect(() => {
-    if (state === 'success' && captureId) {
-      navigation.navigate('Analysis', { captureId });
-    }
-  }, [state, captureId]);
-
-  // Show error alert
-  useEffect(() => {
-    if (state === 'error' && error) {
-      Alert.alert('Capture Failed', error, [
-        { text: 'OK', onPress: reset },
-      ]);
-    }
-  }, [state, error]);
 
   const handleClose = () => {
     if (isRecording) {
@@ -101,16 +80,15 @@ export function SwingRecordingScreen() {
       try {
         setIsRecording(true);
         const video = await cameraRef.current.recordAsync({
-          maxDuration: 5, // 5 seconds max
+          maxDuration: 15, // 15s allows full swing + follow-through; stop anytime with button
         });
 
         setIsRecording(false);
 
         if (video) {
-          // Process the captured video (duration will be auto-detected)
-          await processCapture(video.uri, null, {
+          navigation.navigate('SwingPhaseReview', {
+            videoUri: video.uri,
             club: selectedClub,
-            generateOverlays: true,
           });
         }
       } catch (err: any) {
@@ -133,7 +111,7 @@ export function SwingRecordingScreen() {
   if (!permission) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.permissionText}>Loading camera…</Text>
       </View>
     );
   }
@@ -304,27 +282,6 @@ export function SwingRecordingScreen() {
         </View>
       </View>
 
-      {/* Processing Modal */}
-      <Modal visible={state === 'processing'} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.modalTitle}>Processing Swing</Text>
-            <Text style={styles.modalStage}>{progress.stage}</Text>
-            <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: `${progress.percent * 100}%` },
-                ]}
-              />
-            </View>
-            <Text style={styles.modalPercent}>
-              {Math.round(progress.percent * 100)}%
-            </Text>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -645,50 +602,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Processing Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  modalContent: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 32,
-    width: '100%',
-    maxWidth: 400,
-    alignItems: 'center',
-    gap: 16,
-  },
-  modalTitle: {
-    color: colors.white,
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 8,
-  },
-  modalStage: {
-    color: colors.text.secondary,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginTop: 8,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 4,
-  },
-  modalPercent: {
-    color: colors.text.secondary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
 });
