@@ -369,6 +369,21 @@ CREATE TABLE public.user_achievement (
   CONSTRAINT user_achievement_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT user_achievement_achievement_id_fkey FOREIGN KEY (achievement_id) REFERENCES public.achievement(id)
 );
+CREATE TABLE public.user_curriculum_queue (
+  user_id uuid NOT NULL,
+  lesson_id bigint NOT NULL,
+  issue_slug text,
+  queue_rank integer NOT NULL,
+  status text NOT NULL DEFAULT 'queued'::text,
+  activated_at timestamp with time zone,
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_curriculum_queue_pkey PRIMARY KEY (user_id, lesson_id),
+  CONSTRAINT user_curriculum_queue_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT user_curriculum_queue_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.lesson(id),
+  CONSTRAINT user_curriculum_queue_issue_slug_fkey FOREIGN KEY (issue_slug) REFERENCES public.swing_error(slug)
+);
 CREATE TABLE public.user_daily_xp_activity (
   user_id uuid NOT NULL,
   activity_day date NOT NULL,

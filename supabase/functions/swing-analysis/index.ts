@@ -139,8 +139,8 @@ Deno.serve(async (req) => {
             ],
           },
         ],
-        // Force JSON (the model should return a single JSON object)
-        response_format: { type: "json_object" },
+        // Force JSON (Responses API: format lives under text)
+        text: { format: { type: "json_object" } },
       }),
     });
 
@@ -207,6 +207,15 @@ Deno.serve(async (req) => {
 
     // 8) Done
     await supabase.from("swing_capture").update({ status: "analyzed" }).eq("id", capture_id);
+
+    // 9) Build curriculum queue from issue_scores (feeds daily-plan)
+    const { error: planErr } = await supabase.rpc("build_curriculum_queue", {
+      p_capture_id: capture_id,
+    });
+    if (planErr) {
+      console.error("[swing-analysis] build_curriculum_queue failed:", planErr);
+      // Do NOT fail the whole request; analysis is still valuable
+    }
 
     return json({ ok: true, capture_id, analysis: parsed });
   } catch (e) {

@@ -13,23 +13,23 @@ import { colors } from '@/styles/tokens';
  * Navigation root - switches between auth, onboarding, and app stacks
  */
 function Navigation() {
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, userId } = useAuth();
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(false);
   const [recheckTrigger, setRecheckTrigger] = useState(0);
 
   // Expose a function to trigger re-check (for after onboarding completion)
   useEffect(() => {
-    // Add to window so it can be called from anywhere
     (global as any).refetchOnboardingStatus = () => {
       console.log('[Navigation] Re-checking onboarding status...');
       setRecheckTrigger(prev => prev + 1);
     };
   }, []);
 
-  // Check onboarding status when user is authenticated
+  // Check onboarding status when user is authenticated. Depend on userId (stable) not session
+  // so token refresh / session object changes don't re-run and flash the loading screen.
   useEffect(() => {
-    if (session && !authLoading) {
+    if (userId && !authLoading) {
       setCheckingOnboarding(true);
       hasCompletedOnboarding()
         .then((completed) => {
@@ -38,7 +38,7 @@ function Navigation() {
         })
         .catch((error) => {
           console.error('[Navigation] Error checking onboarding:', error);
-          setOnboardingComplete(false); // Default to not complete on error
+          setOnboardingComplete(false);
         })
         .finally(() => {
           setCheckingOnboarding(false);
@@ -46,10 +46,10 @@ function Navigation() {
     } else {
       setOnboardingComplete(null);
     }
-  }, [session, authLoading, recheckTrigger]);
+  }, [userId, authLoading, recheckTrigger]);
 
   // Show loading spinner while checking auth or onboarding state
-  if (authLoading || (session && checkingOnboarding)) {
+  if (authLoading || (userId && checkingOnboarding)) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -59,7 +59,7 @@ function Navigation() {
 
   // Determine which stack to show
   let stack;
-  if (!session) {
+  if (!session || !userId) {
     // Not authenticated -> show auth stack (login)
     stack = <AuthStack />;
   } else if (onboardingComplete === false) {

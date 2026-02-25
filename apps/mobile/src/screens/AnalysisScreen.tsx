@@ -78,7 +78,7 @@ export function AnalysisScreen() {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error || 'Analysis not found'}</Text>
-        {timedOut && (
+        {captureId != null && (
           <Button
             variant="primary"
             onPress={retryAnalysis}

@@ -59,9 +59,11 @@ export function ReviewScreen() {
   const { submit: submitReview, loading: submitLoading } = useSubmitReviewResult();
   const { data: taxonomy } = useSwingTaxonomy();
 
-  // Fetch plan on mount
+  // Fetch plan on mount (catch so failed edge call doesn't cause unhandled rejection / nav reset)
   useEffect(() => {
-    refetchPlan(10, null);
+    refetchPlan(10, null).catch((e) => {
+      console.error('[SmartReview] plan fetch failed', e);
+    });
   }, [refetchPlan]);
 
   // Transform plan data to match existing UI structure
@@ -84,14 +86,15 @@ export function ReviewScreen() {
     const itemData = isLesson
       ? taxonomy?.lessons?.find((l) => l.id === firstItem.item_id)
       : taxonomy?.drills?.find((d) => d.id === firstItem.item_id);
+    const defaultMinutes = isLesson ? 10 : 8;
 
     return {
       title: itemDisplayTitle(isLesson, itemData),
       description:
-        firstItem.why || itemDisplayDescription(isLesson, itemData, 'Time to review this item.'),
+        firstItem.reason || itemDisplayDescription(isLesson, itemData, 'Time to review this item.'),
       image: PLACEHOLDER_IMAGE,
       progress: { current: 1, total: 1 },
-      duration: `${firstItem.minutes} min`,
+      duration: `${defaultMinutes} min`,
       coaches: [],
       moreCoaches: 0,
       item: firstItem,
@@ -119,7 +122,7 @@ export function ReviewScreen() {
       return {
         id: item.item_id,
         title: itemDisplayTitle(isLesson, itemData),
-        description: item.why || itemDisplayDescription(isLesson, itemData, ''),
+        description: item.reason || itemDisplayDescription(isLesson, itemData, ''),
         timeAgo,
         icon: item.item_type === 'lesson' ? '🎓' : '⛳',
         color: index === 0 ? 'primary' : index === 1 ? 'orange' : 'blue',
@@ -137,6 +140,7 @@ export function ReviewScreen() {
       const itemData = isLesson
         ? taxonomy?.lessons?.find((l) => l.id === item.item_id)
         : taxonomy?.drills?.find((d) => d.id === item.item_id);
+      const defaultMinutes = isLesson ? 10 : 8;
 
       const isDue = item.due_at && new Date(item.due_at) <= new Date();
       const dueDate = item.due_at ? new Date(item.due_at) : null;
@@ -150,7 +154,7 @@ export function ReviewScreen() {
         id: item.item_id,
         title: itemDisplayTitle(isLesson, itemData),
         subtitle,
-        duration: `${item.minutes} min`,
+        duration: `${defaultMinutes} min`,
         image: PLACEHOLDER_IMAGE,
         action: 'play_arrow',
         active: isDue,

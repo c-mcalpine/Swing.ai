@@ -2,15 +2,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 type SubmitRequest = {
-  item_type: "drill" | "lesson";
+  item_type: "drill" | "lesson" | "cue";
   item_id: number;
   issue_slug?: string | null;
   score: number;           // 0..1
   duration_min?: number | null;
-
-  // optional: if you want strict idempotency from client
+  /** "daily" = completed from home daily plan; "review" = completed from Smart Review tab */
+  source?: "daily" | "review";
   client_event_id?: string | null;
 };
+
+const LESSON_COMPLETE_THRESHOLD = 0.8; // advance curriculum only when lesson + daily + score >= this; Smart Review must never advance
 
 function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
@@ -94,6 +96,7 @@ Deno.serve(async (req) => {
     const issueSlug = body.issue_slug ?? null;
     const score = clamp(Number(body.score ?? 0), 0, 1);
     const durationMin = body.duration_min ?? null;
+    const source = body.source ?? "review";
     const clientEventId = body.client_event_id ?? null;
 
     // Generate semantic fingerprint for de-duplication (same completion intent)
@@ -181,8 +184,17 @@ Deno.serve(async (req) => {
       .eq("item_id", itemId)
       .maybeSingle();
 
+    let next: ReturnType<typeof updateSchedule> | null = null;
+
     if (!existing) {
-      // Create baseline scheduler row
+      // First time: seed user_review_item. From daily plan, due tomorrow; from review, due now (already due).
+      const nowMs = Date.now();
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const firstDueAt =
+        source === "daily"
+          ? new Date(nowMs + oneDayMs).toISOString()
+          : new Date(nowMs).toISOString();
+
       const { error: insErr } = await supabase
         .from("user_review_item")
         .insert({
@@ -195,48 +207,92 @@ Deno.serve(async (req) => {
           reps: 0,
           success_streak: 0,
           fail_count: 0,
-          due_at: new Date().toISOString(),
+          due_at: firstDueAt,
           is_active: true,
         });
 
       if (insErr) {
         return new Response(JSON.stringify({ error: insErr.message }), { status: 400 });
       }
+      next = {
+        interval_days: 1,
+        ease: 2.2,
+        success_streak: 0,
+        fail_count: 0,
+        reps: 1,
+        due_at: firstDueAt,
+        last_reviewed_at: new Date().toISOString(),
+        last_score: score,
+      };
+    } else {
+      const base = existing;
+      next = updateSchedule({
+        interval_days: Number(base.interval_days ?? 1),
+        ease: Number(base.ease ?? 2.2),
+        success_streak: Number(base.success_streak ?? 0),
+        fail_count: Number(base.fail_count ?? 0),
+        reps: Number(base.reps ?? 0),
+        score,
+      });
+
+      const { error: updErr } = await supabase
+        .from("user_review_item")
+        .update({
+          ...next,
+          issue_slug: issueSlug,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId)
+        .eq("item_type", itemType)
+        .eq("item_id", itemId);
+
+      if (updErr) {
+        return new Response(JSON.stringify({ error: updErr.message }), { status: 400 });
+      }
     }
 
-    const base = existing ?? {
-      interval_days: 1,
-      ease: 2.2,
-      success_streak: 0,
-      fail_count: 0,
-      reps: 0,
-    };
+    // 4) Advance chapter only when: lesson from daily plan (not Smart Review) with passing score
+    if (
+      itemType === "lesson" &&
+      source === "daily" &&
+      score >= LESSON_COMPLETE_THRESHOLD
+    ) {
+      const nowIso = new Date().toISOString();
+      await supabase
+        .from("user_curriculum_queue")
+        .update({ status: "completed", completed_at: nowIso, updated_at: nowIso })
+        .eq("user_id", userId)
+        .eq("lesson_id", itemId);
 
-    const next = updateSchedule({
-      interval_days: Number(base.interval_days ?? 1),
-      ease: Number(base.ease ?? 2.2),
-      success_streak: Number(base.success_streak ?? 0),
-      fail_count: Number(base.fail_count ?? 0),
-      reps: Number(base.reps ?? 0),
-      score,
-    });
+      const { data: nextQueued } = await supabase
+        .from("user_curriculum_queue")
+        .select("lesson_id")
+        .eq("user_id", userId)
+        .eq("status", "queued")
+        .order("queue_rank", { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
-    const { error: updErr } = await supabase
-      .from("user_review_item")
-      .update({
-        ...next,
-        issue_slug: issueSlug, // keep it connected if provided
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId)
-      .eq("item_type", itemType)
-      .eq("item_id", itemId);
+      if (nextQueued?.lesson_id) {
+        await supabase
+          .from("user_curriculum_queue")
+          .update({ status: "active", activated_at: nowIso, updated_at: nowIso })
+          .eq("user_id", userId)
+          .eq("lesson_id", nextQueued.lesson_id);
 
-    if (updErr) {
-      return new Response(JSON.stringify({ error: updErr.message }), { status: 400 });
+        await supabase.from("user_lesson_progress").insert({
+          user_id: userId,
+          lesson_id: nextQueued.lesson_id,
+          status: "in_progress",
+          current_part: 1,
+          total_parts: 1,
+          updated_at: nowIso,
+        });
+        // Ignore duplicate if row already exists (e.g. from build_curriculum_queue)
+      }
     }
 
-    // 4) If issue_slug present, update last_targeted_at
+    // 5) If issue_slug present, update last_targeted_at
     if (issueSlug) {
       await supabase
         .from("user_issue_state")
@@ -245,7 +301,7 @@ Deno.serve(async (req) => {
         .eq("issue_slug", issueSlug);
     }
 
-    // 5) Deterministic XP award (idempotent)
+    // 6) Deterministic XP award (idempotent)
     // Example rule: review completion XP = 15 + bonus for high score
     const xp = score >= 0.9 ? 25 : score >= 0.75 ? 20 : score >= 0.6 ? 15 : 10;
 
@@ -265,7 +321,7 @@ Deno.serve(async (req) => {
       idempotency_key: idempotencyKey,
     });
 
-    // 6) Optional: add notification feed entry
+    // 7) Optional: add notification feed entry
     await supabase.from("user_review_event").insert({
       user_id: userId,
       title: "Smart Review complete",

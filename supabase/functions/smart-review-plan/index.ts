@@ -8,6 +8,7 @@ type PlanRequest = {
   include_lessons?: boolean;
 };
 
+/** Internal plan item used for time-budgeting; mapped to response contract at the end */
 type PlanItem = {
   item_type: "drill" | "lesson";
   item_id: number;
@@ -16,6 +17,20 @@ type PlanItem = {
   why: string;
   source: "due_review" | "issue_target" | "maintenance";
   due_at: string | null;
+  reps: number;
+  ease: number;
+  interval_days: number;
+};
+
+/** Response contract: minimal metadata for client */
+type SmartReviewItem = {
+  item_type: "drill" | "lesson" | "cue";
+  item_id: number;
+  due_at: string;
+  reps: number;
+  ease: number;
+  interval_days: number;
+  reason: "Due for review";
 };
 
 function clamp(n: number, lo: number, hi: number) {
@@ -74,10 +89,10 @@ Deno.serve(async (req) => {
       (recentCompletions ?? []).map((r: any) => `${r.item_type}:${r.item_id}`)
     );
 
-    // 2) Fetch due review items (oldest first)
+    // 2) Fetch due review items (user_review_item where due_at <= now(), order by due_at asc)
     const { data: dueItems, error: dueErr } = await supabase
       .from("user_review_item")
-      .select("item_type,item_id,issue_slug,due_at")
+      .select("item_type,item_id,issue_slug,due_at,reps,ease,interval_days")
       .eq("user_id", userId)
       .eq("is_active", true)
       .lte("due_at", new Date().toISOString())
@@ -88,8 +103,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: dueErr.message }), { status: 400 });
     }
 
-    // We'll need drill metadata (min_duration) for items we choose.
-    // Preload drills and lessons for due candidates in a single batch.
+    // Preload drills and lessons for due candidates
     const dueDrillIds = (dueItems ?? []).filter((d: any) => d.item_type === "drill").map((d: any) => d.item_id);
     const dueLessonIds = (dueItems ?? []).filter((d: any) => d.item_type === "lesson").map((d: any) => d.item_id);
 
@@ -107,7 +121,7 @@ Deno.serve(async (req) => {
       (data ?? []).forEach((l: any) => lessonsById.set(l.id, l));
     }
 
-    // Add up to 2 due items (Speak-like: always some retention)
+    // Add up to 2 due items (spaced repetition)
     for (const d of dueItems ?? []) {
       const key = `${d.item_type}:${d.item_id}`;
       if (recentlyDone.has(key)) continue;
@@ -124,6 +138,9 @@ Deno.serve(async (req) => {
           why: "Review due today (spaced repetition).",
           source: "due_review",
           due_at: d.due_at ?? null,
+          reps: Number(d.reps ?? 0),
+          ease: Number(d.ease ?? 2.2),
+          interval_days: Number(d.interval_days ?? 1),
         });
       } else if (includeLessons && d.item_type === "lesson") {
         const lesson = lessonsById.get(d.item_id);
@@ -137,6 +154,9 @@ Deno.serve(async (req) => {
           why: "Lesson review due today (spaced repetition).",
           source: "due_review",
           due_at: d.due_at ?? null,
+          reps: Number(d.reps ?? 0),
+          ease: Number(d.ease ?? 2.2),
+          interval_days: Number(d.interval_days ?? 1),
         });
       }
 
@@ -151,14 +171,12 @@ Deno.serve(async (req) => {
       .order("severity", { ascending: false })
       .limit(6);
 
-    // Filter issues: evidence_count >= 2 OR severity high
     const filteredIssues = (issues ?? []).filter((i: any) => {
       const sev = Number(i.severity ?? 0);
       const ev = Number(i.evidence_count ?? 0);
       return ev >= 2 || sev >= 0.7;
     });
 
-    // Pick top issue not targeted in last 48h
     const since48h = new Date(Date.now() - 48 * 60 * 60 * 1000);
     const topIssue = filteredIssues.find((i: any) => {
       if (!i.last_targeted_at) return true;
@@ -167,7 +185,6 @@ Deno.serve(async (req) => {
 
     // 4) Choose best drill for that issue via drill_error weights
     if (topIssue && remaining > 0) {
-      // drill_error references swing_error(id), but you have issue_slug. Need swing_error.id.
       const { data: errRow } = await supabase
         .from("swing_error")
         .select("id,slug")
@@ -193,7 +210,6 @@ Deno.serve(async (req) => {
           if (environment) q = q.or(`environment.is.null,environment.eq.${environment}`);
           const { data: drills } = await q;
 
-          // Pick first candidate that fits time and not recently done
           for (const d of drills ?? []) {
             const key = `drill:${d.id}`;
             if (recentlyDone.has(key)) continue;
@@ -203,9 +219,12 @@ Deno.serve(async (req) => {
               item_id: d.id,
               minutes,
               issue_slug: topIssue.issue_slug,
-              why: "Targets your highest-priority issue and hasn’t been targeted recently.",
+              why: "Targets your highest-priority issue and hasn't been targeted recently.",
               source: "issue_target",
               due_at: null,
+              reps: 0,
+              ease: 2.2,
+              interval_days: 1,
             });
             if (ok) break;
           }
@@ -213,12 +232,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5) Maintenance item (optional): pull one long-interval item once/week
-    // Only if we still have time and plan is short
+    // 5) Maintenance: pull one long-interval item once/week
     if (remaining >= 6 && items.length < 3) {
       const { data: maint } = await supabase
         .from("user_review_item")
-        .select("item_type,item_id,issue_slug,due_at,interval_days")
+        .select("item_type,item_id,issue_slug,due_at,interval_days,reps,ease")
         .eq("user_id", userId)
         .eq("is_active", true)
         .gte("interval_days", 14)
@@ -228,8 +246,6 @@ Deno.serve(async (req) => {
       for (const m of maint ?? []) {
         const key = `${m.item_type}:${m.item_id}`;
         if (recentlyDone.has(key)) continue;
-        // Only pull if it hasn't been reviewed in a while (due in future but we "pull forward" weekly)
-        // (This is lightweight; you can refine later.)
         if (m.item_type === "drill") {
           const { data: d } = await supabase.from("drill").select("id,min_duration_min,environment").eq("id", m.item_id).maybeSingle();
           if (!d) continue;
@@ -244,13 +260,28 @@ Deno.serve(async (req) => {
             why: "Weekly maintenance review to keep progress from decaying.",
             source: "maintenance",
             due_at: m.due_at ?? null,
+            reps: Number(m.reps ?? 0),
+            ease: Number(m.ease ?? 2.2),
+            interval_days: Number(m.interval_days ?? 1),
           });
           if (ok) break;
         }
       }
     }
 
-    // Compute retention score from active review items
+    // Map to response contract: { item_type, item_id, due_at, reps, ease, interval_days, reason: "Due for review" }
+    const nowIso = new Date().toISOString();
+    const responseItems: SmartReviewItem[] = items.map((it) => ({
+      item_type: it.item_type,
+      item_id: it.item_id,
+      due_at: it.due_at ?? nowIso,
+      reps: it.reps,
+      ease: it.ease,
+      interval_days: it.interval_days,
+      reason: "Due for review" as const,
+    }));
+
+    // Retention score from active review items (unchanged)
     const { data: activeItems } = await supabase
       .from("user_review_item")
       .select("last_score")
@@ -261,17 +292,17 @@ Deno.serve(async (req) => {
     let retentionScore: number | null = null;
     if (activeItems && activeItems.length > 0) {
       const scores = activeItems.map((item: any) => Number(item.last_score ?? 0));
-      const avgScore = scores.reduce((sum, s) => sum + s, 0) / scores.length;
-      retentionScore = clamp(avgScore, 0, 1);
+      retentionScore = clamp(scores.reduce((sum, s) => sum + s, 0) / scores.length, 0, 1);
     }
 
     return new Response(
       JSON.stringify({
-        generated_at: new Date().toISOString(),
+        ok: true,
+        items: responseItems,
+        generated_at: nowIso,
         budget_min: budgetMin,
         environment,
         retention_score: retentionScore,
-        items,
       }),
       { headers: { "Content-Type": "application/json" } },
     );

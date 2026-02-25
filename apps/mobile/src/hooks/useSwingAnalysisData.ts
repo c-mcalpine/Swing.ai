@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getSwingAnalysisByCaptureId, SwingAnalysisWithCapture } from '@/api/swingAnalysis';
+import { SwingAnalysisWithCapture } from '@/api/swingAnalysis';
 import { supabase } from '@/lib/supabase';
 import { edgeFunctions } from '@/api/edge';
 import type { Database } from '@/lib/supabaseTypes';
@@ -9,14 +9,16 @@ type SwingCaptureRow = Database['public']['Tables']['swing_capture']['Row'];
 /** Result of .from('swing_analysis').select('*, swing_capture!inner(*)') — analysis row + joined capture */
 type AnalysisRowWithCapture = SwingAnalysisRow & { swing_capture: SwingCaptureRow };
 
-const POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
-const MAX_POLL_TIME_MS = 90000; // Timeout after 90 seconds
+const POLL_DELAY_MS = 1000;
+const MAX_POLL_ATTEMPTS = 20; // ~20s total
 
 /**
- * Hook to fetch swing analysis data by capture ID with polling
- * 
- * Polls for analysis completion if not immediately available.
- * Shows analyzing status and allows retry on timeout.
+ * Hook to fetch swing analysis data by capture ID with status-first polling.
+ *
+ * 1. Poll swing_capture.status until 'analyzed' or 'failed' (avoids race where
+ *    analysis row isn't visible yet).
+ * 2. When status === 'analyzed', fetch swing_analysis and render.
+ * 3. When status === 'failed', show error and Retry button.
  */
 export function useSwingAnalysisData(captureId: number | undefined) {
   const [data, setData] = useState<SwingAnalysisWithCapture | null>(null);
@@ -24,114 +26,23 @@ export function useSwingAnalysisData(captureId: number | undefined) {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timedOut, setTimedOut] = useState(false);
-  const startTimeRef = useRef<number>(Date.now());
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const stopPolling = () => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
-  };
-
-  const fetchAnalysis = async (captureId: number): Promise<boolean> => {
-    try {
-      // First check if analysis exists
-      const { data: analysisData, error: analysisError } = await supabase
-        .from('swing_analysis')
-        .select('*, swing_capture!inner(*)')
-        .eq('capture_id', captureId)
-        .maybeSingle();
-
-      if (analysisError) {
-        console.error('Error fetching analysis:', analysisError);
-        return false;
-      }
-
-      if (analysisData) {
-        const row = analysisData as AnalysisRowWithCapture;
-        const { swing_capture, ...analysisRow } = row;
-        setData({
-          analysis: analysisRow as SwingAnalysisRow,
-          capture: swing_capture,
-        });
-        setLoading(false);
-        setAnalyzing(false);
-        stopPolling();
-        return true;
-      }
-
-      // Check capture status (swing_capture.status: uploaded | analyzing | completed | failed)
-      const { data: captureDataRaw, error: captureError } = await supabase
-        .from('swing_capture')
-        .select('status')
-        .eq('id', captureId)
-        .single();
-
-      if (captureError) {
-        console.error('Error fetching capture status:', captureError);
-        return false;
-      }
-
-      const captureData = captureDataRaw as { status: string } | null;
-      if (captureData?.status === 'failed') {
-        setError('Analysis failed. Please try recording again.');
-        setLoading(false);
-        setAnalyzing(false);
-        stopPolling();
-        return true;
-      }
-
-      // Still analyzing
-      setAnalyzing(true);
-      return false;
-    } catch (err: any) {
-      console.error('Error in fetchAnalysis:', err);
-      return false;
-    }
-  };
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
   const retryAnalysis = async () => {
     if (!captureId) return;
-
     setTimedOut(false);
     setError(null);
     setLoading(true);
     setAnalyzing(true);
-    startTimeRef.current = Date.now();
-
-    // Trigger analysis again
+    setData(null);
     try {
       await edgeFunctions.analyzeSwing(captureId);
-
-      // Restart polling
-      startPolling(captureId);
+      setRetryTrigger((t) => t + 1);
     } catch (err: any) {
-      setError(err.message || 'Failed to retry analysis');
+      setError(err?.message || 'Failed to retry analysis');
       setLoading(false);
       setAnalyzing(false);
     }
-  };
-
-  const startPolling = (captureId: number) => {
-    stopPolling();
-
-    pollIntervalRef.current = setInterval(async () => {
-      const elapsed = Date.now() - startTimeRef.current;
-
-      // Check timeout
-      if (elapsed > MAX_POLL_TIME_MS) {
-        stopPolling();
-        setTimedOut(true);
-        setError('Analysis is taking longer than expected');
-        setLoading(false);
-        setAnalyzing(false);
-        return;
-      }
-
-      // Poll for completion
-      await fetchAnalysis(captureId);
-    }, POLL_INTERVAL_MS);
   };
 
   useEffect(() => {
@@ -141,29 +52,100 @@ export function useSwingAnalysisData(captureId: number | undefined) {
       return;
     }
 
-    startTimeRef.current = Date.now();
+    let cancelled = false;
     setLoading(true);
     setError(null);
     setTimedOut(false);
+    setData(null);
 
-    // Initial fetch
-    fetchAnalysis(captureId).then((complete) => {
-      if (!complete) {
-        // Start polling if not complete
-        startPolling(captureId);
+    async function load() {
+      let lastStatus: string | null = null;
+      for (let i = 0; i < MAX_POLL_ATTEMPTS; i++) {
+        const { data: cap, error: capErr } = await supabase
+          .from('swing_capture')
+          .select('status')
+          .eq('id', captureId)
+          .single();
+
+        if (cancelled) return;
+        if (capErr) {
+          console.error('[useSwingAnalysisData] capture status error:', capErr);
+          setError('Could not load capture status');
+          setLoading(false);
+          setAnalyzing(false);
+          return;
+        }
+
+        const status = (cap as { status: string } | null)?.status;
+        lastStatus = status ?? null;
+
+        if (status === 'analyzed') break;
+        if (status === 'failed') {
+          setError('Analysis failed. You can retry below.');
+          setLoading(false);
+          setAnalyzing(false);
+          return;
+        }
+
+        setAnalyzing(true);
+        await new Promise((r) => setTimeout(r, POLL_DELAY_MS));
+      }
+
+      if (cancelled) return;
+      if (lastStatus !== 'analyzed') {
+        setTimedOut(true);
+        setError('Analysis is taking longer than expected');
+        setLoading(false);
+        setAnalyzing(false);
+        return;
+      }
+
+      const { data: analysisData, error: analysisError } = await supabase
+        .from('swing_analysis')
+        .select('*, swing_capture!inner(*)')
+        .eq('capture_id', captureId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (cancelled) return;
+      if (analysisError || !analysisData) {
+        console.error('[useSwingAnalysisData] analysis fetch error:', analysisError);
+        setError(analysisError?.message || 'Analysis not found');
+        setLoading(false);
+        setAnalyzing(false);
+        return;
+      }
+
+      const row = analysisData as AnalysisRowWithCapture;
+      const { swing_capture, ...analysisRow } = row;
+      setData({
+        analysis: analysisRow as SwingAnalysisRow,
+        capture: swing_capture,
+      });
+      setLoading(false);
+      setAnalyzing(false);
+    }
+
+    load().catch((e) => {
+      if (!cancelled) {
+        console.error('[useSwingAnalysisData] load failed', e);
+        setError(e?.message || 'Something went wrong');
+        setLoading(false);
+        setAnalyzing(false);
       }
     });
 
     return () => {
-      stopPolling();
+      cancelled = true;
     };
-  }, [captureId]);
+  }, [captureId, retryTrigger]);
 
-  return { 
-    data, 
-    loading, 
+  return {
+    data,
+    loading,
     analyzing,
-    error, 
+    error,
     timedOut,
     retryAnalysis,
   };

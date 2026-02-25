@@ -100,6 +100,7 @@ export function DailyLessonScreen() {
           score,
           issue_slug: reviewItem.issue_slug,
           duration_min: durationMin,
+          source: 'review',
         });
 
         // Show success feedback
@@ -124,10 +125,31 @@ export function DailyLessonScreen() {
         Alert.alert('Error', error.message || 'Failed to submit review');
       }
     } else {
-      // Regular lesson completion (not from Smart Review)
-      console.log('Lesson completed! +50 XP');
-      // @ts-ignore
-      navigation.navigate('PersonalizedPlan');
+      // Completed from Home daily plan: submit so backend seeds user_review_item and can advance curriculum
+      if (lesson?.id != null) {
+        const score = progress / 100;
+        const durationMin = lesson.duration_min ?? 10;
+        try {
+          const result = await submitReview({
+            item_type: 'lesson',
+            item_id: lesson.id,
+            score,
+            duration_min: durationMin,
+            source: 'daily',
+          });
+          if (result?.xp_awarded) {
+            Alert.alert('Lesson complete!', `+${result.xp_awarded} XP`, [
+              { text: 'OK', onPress: () => navigation.navigate('Home') },
+            ]);
+          } else {
+            navigation.navigate('Home');
+          }
+        } catch (e: any) {
+          Alert.alert('Error', e?.message ?? 'Failed to save progress');
+        }
+      } else {
+        navigation.navigate('Home');
+      }
     }
   };
 

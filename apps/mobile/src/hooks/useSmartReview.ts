@@ -34,7 +34,7 @@ export function useSmartReviewPlan(
         const edgeError = err as EdgeFunctionError;
         setError(edgeError.message || edgeError.error || 'Failed to load plan');
         setLoading(false);
-        throw err;
+        return null;
       }
     },
     [budgetMin, environment]
@@ -56,22 +56,24 @@ export function useSubmitReviewResult() {
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (params: {
-    item_type: 'drill' | 'lesson';
+    item_type: 'drill' | 'lesson' | 'cue';
     item_id: number;
     score: number;
     issue_slug?: string | null;
     duration_min?: number | null;
+    /** 'daily' = completed from Home daily plan; 'review' = from Smart Review tab */
+    source?: 'daily' | 'review';
   }) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Generate client-side idempotency key
       const timestamp = Date.now();
       const clientEventId = `${params.item_type}-${params.item_id}-${timestamp}`;
 
       const result = await edgeFunctions.submitReviewResult({
         ...params,
+        source: params.source ?? 'review',
         client_event_id: clientEventId,
       });
 

@@ -15,8 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '@/lib/AuthContext';
 import { useUserProfile, useStreak } from '@/hooks/useProfile';
-import { useDailyLesson } from '@/hooks/useLessonProgress';
-import { useQuickDrills } from '@/hooks/useDrillAssignment';
+import { useDailyPlan } from '@/hooks/useDailyPlan';
 import { UserCircleIcon } from 'phosphor-react-native';
 import { BottomNav } from '@/components/BottomNav';
 import { colors, spacing } from '@/styles/tokens';
@@ -25,8 +24,6 @@ import type { Database } from '@/lib/supabaseTypes';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Home'>;
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
-type LessonRow = Database['public']['Tables']['lesson']['Row'];
-type DrillRow = Database['public']['Tables']['drill']['Row'];
 
 /**
  * Home Screen - Main dashboard with gamification, daily lesson, and quick drills
@@ -36,14 +33,13 @@ export function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { userId } = useAuth();
 
-  // Fetch data using hooks
+  // Fetch data: daily plan (lesson + drills + cues) for new learning; separate from Smart Review
   const { data: profile, loading: profileLoading, error: profileError } = useUserProfile();
   const { streak, loading: streakLoading } = useStreak();
-  const { data: dailyLessonData, loading: lessonLoading } = useDailyLesson(userId);
-  const { data: quickDrillsData, loading: drillsLoading } = useQuickDrills(userId, 2);
+  const { plan: dailyPlan, loading: planLoading, error: planError } = useDailyPlan({ include_lessons: true, max_drills: 2, max_cues: 2 });
 
   const [hasUnreadNotifications] = useState(false);
-  const isLoading = profileLoading || streakLoading || lessonLoading || drillsLoading;
+  const isLoading = profileLoading || streakLoading || planLoading;
 
   // Calculate percentile from rank (placeholder logic)
   const getPercentile = (level?: number) => {
@@ -69,13 +65,14 @@ export function HomeScreen() {
       }
     : null;
 
-  const lesson = dailyLessonData?.lesson as LessonRow | undefined;
-  const dailyLesson = lesson
+  // Daily plan: active lesson + today's items (lesson, drills, cues) — new learning only
+  const activeLesson = dailyPlan?.active_lesson;
+  const dailyLesson = activeLesson
     ? {
-        id: lesson.id,
-        title: lesson.title,
-        description: lesson.summary ?? 'Complete this lesson to improve your swing',
-        duration: `${lesson.duration_min ?? 15} mins`,
+        id: activeLesson.id,
+        title: activeLesson.title,
+        description: activeLesson.summary ?? 'Complete this lesson to improve your swing',
+        duration: '15 mins',
         location: 'Any Location',
         xp: 50,
         image: 'https://via.placeholder.com/400x200',
@@ -83,25 +80,23 @@ export function HomeScreen() {
     : null;
 
   const quickDrills =
-    quickDrillsData?.map((assignment) => {
-      const d = assignment.drill as DrillRow;
-      return {
-        id: assignment.drill_id,
+    dailyPlan?.items
+      ?.filter((i): i is { type: 'drill'; drill_id: number; name: string; issue_slug?: string | null; reason: string } => i.type === 'drill')
+      .map((d) => ({
+        id: d.drill_id,
         title: d.name,
-        description: d.objective ?? d.description ?? 'Practice drill',
-        duration: `${d.min_duration_min ?? 5}m`,
-        xp: d.xp_reward ?? 10,
+        description: d.reason ?? 'Practice drill',
+        duration: '5m',
+        xp: 10,
         image: 'https://via.placeholder.com/300x200',
-      };
-    }) ?? [];
+      })) ?? [];
 
   const xpPercentage = user ? Math.min(100, (user.currentXP / user.maxXP) * 100) : 0;
   const xpToNextLevel = user && p ? (p.xp_to_next ?? 0) : 0;
 
   const handleStartLesson = () => {
     if (dailyLesson) {
-      // Navigate to lesson (placeholder)
-      console.log('Navigate to lesson:', dailyLesson.id);
+      navigation.navigate('DailyLesson', { lessonId: dailyLesson.id, fromSmartReview: false });
     }
   };
 
@@ -111,7 +106,7 @@ export function HomeScreen() {
   };
 
   const handleQuickDrill = (drillId: number) => {
-    navigation.navigate('DrillDetails', { drillId });
+    navigation.navigate('DrillDetails', { drillId, fromSmartReview: false });
   };
 
   const handleCaptureSwing = () => {
@@ -131,14 +126,14 @@ export function HomeScreen() {
     );
   }
 
-  // Error state
-  if (profileError) {
+  // Error state (profile or daily plan)
+  if (profileError || planError) {
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorTitle}>Failed to Load Profile</Text>
-          <Text style={styles.errorMessage}>{profileError.message}</Text>
+          <Text style={styles.errorTitle}>{profileError ? 'Failed to Load Profile' : 'Failed to Load Plan'}</Text>
+          <Text style={styles.errorMessage}>{(profileError ?? planError)?.message ?? 'Something went wrong'}</Text>
         </View>
         <BottomNav />
       </View>

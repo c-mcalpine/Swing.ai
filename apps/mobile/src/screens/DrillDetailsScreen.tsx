@@ -126,6 +126,7 @@ export function DrillDetailsScreen() {
         score,
         issue_slug: reviewItem?.issue_slug || null,
         duration_min: durationMin,
+        source: fromSmartReview ? 'review' : 'daily',
       });
 
       Alert.alert('Great work!', 'Your practice has been recorded.', [

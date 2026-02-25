@@ -611,6 +611,43 @@ export interface Database {
         };
         Relationships: [];
       };
+      /** Curriculum queue: lessons ordered by swing issue_scores (build_curriculum_queue). status: queued | active | completed. */
+      user_curriculum_queue: {
+        Row: {
+          user_id: string;
+          lesson_id: number;
+          issue_slug: string | null;
+          queue_rank: number;
+          status: string;
+          activated_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          lesson_id: number;
+          issue_slug?: string | null;
+          queue_rank: number;
+          status?: string;
+          activated_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          lesson_id?: number;
+          issue_slug?: string | null;
+          queue_rank?: number;
+          status?: string;
+          activated_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       user_review_event: {
         Row: {
           id: number;

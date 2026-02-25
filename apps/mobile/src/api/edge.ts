@@ -155,8 +155,45 @@ export const edgeFunctions = {
   },
 
   /**
-   * Get smart review plan (spaced repetition)
-   * Server-side: analyzes user's issue state, review schedule, returns personalized plan
+   * Get daily plan (new learning: lesson, drills, cues from curriculum queue)
+   * Used by Home screen only. Not spaced repetition.
+   */
+  getDailyPlan: (options?: {
+    include_lessons?: boolean;
+    max_drills?: number;
+    max_cues?: number;
+  }) => {
+    return callEdgeFunction<
+      {
+        include_lessons?: boolean;
+        max_drills?: number;
+        max_cues?: number;
+      },
+      {
+        ok: boolean;
+        active_lesson: {
+          id: number;
+          title: string;
+          summary: string | null;
+          issue_slug: string | null;
+        } | null;
+        today: {
+          lesson_id: number;
+          drill_ids: number[];
+          cue_ids: number[];
+        };
+        items: Array<
+          | { type: 'lesson'; lesson_id: number; title: string; summary?: string | null }
+          | { type: 'drill'; drill_id: number; name: string; issue_slug?: string | null; reason: string }
+          | { type: 'cue'; cue_id: number; text: string; cue_type?: string | null; issue_slug?: string | null; reason: string }
+        >;
+      }
+    >('daily-plan', options || {});
+  },
+
+  /**
+   * Get smart review plan (spaced repetition from user_review_item.due_at)
+   * Used by Review tab only.
    */
   getSmartReviewPlan: (options?: {
     budget_min?: number;
@@ -170,19 +207,20 @@ export const edgeFunctions = {
         include_lessons?: boolean;
       },
       {
-        generated_at: string;
-        budget_min: number;
-        environment: string | null;
-        retention_score: number | null;
+        ok: boolean;
         items: Array<{
-          item_type: 'drill' | 'lesson';
+          item_type: 'drill' | 'lesson' | 'cue';
           item_id: number;
-          minutes: number;
-          issue_slug: string | null;
-          why: string;
-          source: 'due_review' | 'issue_target' | 'maintenance';
-          due_at: string | null;
+          due_at: string;
+          reps: number;
+          ease: number;
+          interval_days: number;
+          reason: string;
         }>;
+        generated_at?: string;
+        budget_min?: number;
+        environment?: string | null;
+        retention_score?: number | null;
       }
     >('smart-review-plan', options || {});
   },
@@ -192,20 +230,22 @@ export const edgeFunctions = {
    * Server-side: SM-2 algorithm, XP calculation, issue targeting updates
    */
   submitReviewResult: (params: {
-    item_type: 'drill' | 'lesson';
+    item_type: 'drill' | 'lesson' | 'cue';
     item_id: number;
     score: number; // 0..1
     issue_slug?: string | null;
     duration_min?: number | null;
-    client_event_id?: string | null; // For client-side idempotency
+    source?: 'daily' | 'review'; // daily = from Home daily plan; review = from Smart Review tab
+    client_event_id?: string | null;
   }) => {
     return callEdgeFunction<
       {
-        item_type: 'drill' | 'lesson';
+        item_type: 'drill' | 'lesson' | 'cue';
         item_id: number;
         score: number;
         issue_slug?: string | null;
         duration_min?: number | null;
+        source?: 'daily' | 'review';
         client_event_id?: string | null;
       },
       {
