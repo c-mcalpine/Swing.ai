@@ -15,6 +15,7 @@ import { File } from 'expo-file-system';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { supabase } from '@/lib/supabase';
 import { edgeFunctions } from '@/api/edge';
+import { queryClient } from '@/lib/queryClient';
 import { awardXp } from '@/lib/xp';
 import {
   extractKeyframes,
@@ -337,7 +338,10 @@ export class CaptureCoordinator {
       onProgress?.('Starting AI analysis', 0.95);
       try {
         const analysisResult = await edgeFunctions.analyzeSwing(captureId);
-        
+
+        // Invalidate daily plan so Home screen shows the new lesson from build_curriculum_queue
+        queryClient.invalidateQueries({ queryKey: ['dailyPlan'] });
+
         // Award XP (same idempotencyKey as AnalysisScreen so we never double-award)
         try {
           await awardXp({

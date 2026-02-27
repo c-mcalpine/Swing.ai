@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { SwingAnalysisWithCapture } from '@/api/swingAnalysis';
 import { supabase } from '@/lib/supabase';
 import { edgeFunctions } from '@/api/edge';
+import { queryClient } from '@/lib/queryClient';
 import type { Database } from '@/lib/supabaseTypes';
 
 type SwingAnalysisRow = Database['public']['Tables']['swing_analysis']['Row'];
@@ -37,6 +38,7 @@ export function useSwingAnalysisData(captureId: number | undefined) {
     setData(null);
     try {
       await edgeFunctions.analyzeSwing(captureId);
+      queryClient.invalidateQueries({ queryKey: ['dailyPlan'] });
       setRetryTrigger((t) => t + 1);
     } catch (err: any) {
       setError(err?.message || 'Failed to retry analysis');

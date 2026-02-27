@@ -14,10 +14,10 @@ import { BellIcon, BellRingingIcon } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '@/lib/AuthContext';
-import { useUserProfile, useStreak } from '@/hooks/useProfile';
-import { useDailyPlan } from '@/hooks/useDailyPlan';
+import { useStreak } from '@/hooks/useProfile';
+import { useProfileQuery, useDailyPlanQuery } from '@/hooks/useQueries';
 import { UserCircleIcon } from 'phosphor-react-native';
-import { BottomNav } from '@/components/BottomNav';
+import { BottomNav, useBottomNavPadding } from '@/components/BottomNav';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
 import type { Database } from '@/lib/supabaseTypes';
@@ -33,13 +33,14 @@ export function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { userId } = useAuth();
 
-  // Fetch data: daily plan (lesson + drills + cues) for new learning; separate from Smart Review
-  const { data: profile, loading: profileLoading, error: profileError } = useUserProfile();
+  // Cache-backed: no full-page loader when we have cached data (instant tab switch)
+  const { data: profile, isLoading: profileLoading, error: profileError } = useProfileQuery(userId ?? null);
   const { streak, loading: streakLoading } = useStreak();
-  const { plan: dailyPlan, loading: planLoading, error: planError } = useDailyPlan({ include_lessons: true, max_drills: 2, max_cues: 2 });
+  const { data: dailyPlan, isLoading: planLoading, error: planError } = useDailyPlanQuery();
 
   const [hasUnreadNotifications] = useState(false);
-  const isLoading = profileLoading || streakLoading || planLoading;
+  const isInitialLoad = (profileLoading && !profile) || streakLoading || (planLoading && !dailyPlan);
+  const bottomNavPadding = useBottomNavPadding();
 
   // Calculate percentile from rank (placeholder logic)
   const getPercentile = (level?: number) => {
@@ -113,8 +114,8 @@ export function HomeScreen() {
     navigation.navigate('Capture');
   };
 
-  // Loading state
-  if (isLoading) {
+  // Full-page loading only when we have no cached data (first load)
+  if (isInitialLoad) {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -193,7 +194,7 @@ export function HomeScreen() {
       </SafeAreaView>
 
       {/* Scrollable Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: bottomNavPadding }} showsVerticalScrollIndicator={false}>
         {/* Gamification Dashboard */}
         <View style={styles.gamification}>
           {/* Status Pills */}
@@ -358,8 +359,6 @@ export function HomeScreen() {
           </View>
         </View>
 
-        {/* Bottom padding for nav */}
-        <View style={{ height: 32 }} />
       </ScrollView>
 
       {/* Bottom Navigation */}

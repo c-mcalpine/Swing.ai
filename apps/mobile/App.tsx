@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { AuthStack } from '@/navigation/AuthStack';
 import { AppStack } from '@/navigation/AppStack';
 import { OnboardingStack } from '@/navigation/OnboardingStack';
 import { hasCompletedOnboarding } from '@/api/profile';
+import { queryClient } from '@/lib/queryClient';
 import { colors } from '@/styles/tokens';
 
 /**
@@ -84,9 +86,11 @@ function Navigation() {
  */
 export default function App() {
   return (
-    <AuthProvider>
-      <Navigation />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Navigation />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

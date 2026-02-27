@@ -17,12 +17,11 @@ import Svg, { Polygon, Line, Circle } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraIcon, GearIcon, SignOutIcon, UserCircleIcon } from 'phosphor-react-native';
 import { useAuth } from '@/lib/AuthContext';
-import { useUserProfile } from '@/hooks/useProfile';
-import { useRecentSessions } from '@/hooks/useSessions';
-import { useUserAchievements, useAllAchievements } from '@/hooks/useAchievements';
-import { BottomNav } from '@/components/BottomNav';
+import { useProfileQuery, useSessionsQuery, useUserAchievementsQuery, useAllAchievementsQuery } from '@/hooks/useQueries';
+import { BottomNav, useBottomNavPadding } from '@/components/BottomNav';
 import { colors, spacing } from '@/styles/tokens';
 import { updateProfile } from '@/api/profile';
+import { uploadProfilePhoto } from '@/api/profilePhoto';
 
 /**
  * Profile Screen - User profile with stats, achievements, and recent sessions
@@ -32,22 +31,22 @@ export function ProfileScreen() {
   const navigation = useNavigation();
   const { userId, signOut } = useAuth();
 
-  // Fetch data using hooks
+  // Cache-backed: no full-page loader when we have cached data
   const {
     data: profileData,
-    loading: profileLoading,
+    isLoading: profileLoading,
     error: profileError,
     refetch: refetchProfile,
-  } = useUserProfile();
-  const { data: sessionsData, loading: sessionsLoading } = useRecentSessions(userId, 3);
-  const { data: userAchievements, loading: achievementsLoading } = useUserAchievements(userId);
-  const { data: allAchievements, loading: allAchievementsLoading } = useAllAchievements();
+  } = useProfileQuery(userId ?? null);
+  const { data: sessionsData, isLoading: sessionsLoading } = useSessionsQuery(userId ?? null, 3);
+  const { data: userAchievements, isLoading: achievementsLoading } = useUserAchievementsQuery(userId ?? null);
+  const { data: allAchievements, isLoading: allAchievementsLoading } = useAllAchievementsQuery();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarUpdating, setAvatarUpdating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const bottomNavPadding = useBottomNavPadding();
 
-  const isLoading =
-    profileLoading || sessionsLoading || achievementsLoading || allAchievementsLoading;
+  const isInitialLoad = (profileLoading && !profileData) || (sessionsLoading && sessionsData === undefined) || (achievementsLoading && userAchievements === undefined) || (allAchievementsLoading && !allAchievements?.length);
 
   // Format member since date
   const formatMemberSince = (dateStr?: string) => {
@@ -165,13 +164,16 @@ export function ProfileScreen() {
   const radarPointsStr = radarPoints.map((p) => `${p.x},${p.y}`).join(' ');
   const resolvedAvatarUri = avatarUri || profile?.avatar || null;
 
-  const saveAvatarUri = async (nextAvatarUri: string) => {
+  const saveAvatarUri = async (localUri: string) => {
+    if (!userId) return;
     const previousAvatarUri = resolvedAvatarUri;
     setAvatarUpdating(true);
-    setAvatarUri(nextAvatarUri);
+    setAvatarUri(localUri);
 
     try {
-      await updateProfile({ avatar_url: nextAvatarUri });
+      const publicUrl = await uploadProfilePhoto(userId, localUri);
+      await updateProfile({ avatar_url: publicUrl });
+      setAvatarUri(null);
       refetchProfile();
     } catch (error) {
       setAvatarUri(previousAvatarUri);
@@ -258,8 +260,8 @@ export function ProfileScreen() {
     );
   };
 
-  // Loading state
-  if (isLoading) {
+  // Loading state - only when no cached data (first load)
+  if (isInitialLoad) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -332,7 +334,7 @@ export function ProfileScreen() {
       </SafeAreaView>
 
       {/* Scrollable Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: bottomNavPadding }} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <TouchableOpacity

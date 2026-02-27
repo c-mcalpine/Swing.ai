@@ -13,9 +13,9 @@ import { BellIcon, BellRingingIcon, TrophyIcon } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '@/lib/AuthContext';
-import { useWeeklyLeaderboard, useMyWeeklyRank } from '@/hooks/useLeaderboard';
-import { useChallengesWithProgress } from '@/hooks/useChallenges';
-import { BottomNav } from '@/components/BottomNav';
+import { useTierLeaderboard } from '@/hooks/useTierLeaderboard';
+import { useChallengesQuery } from '@/hooks/useQueries';
+import { BottomNav, useBottomNavPadding } from '@/components/BottomNav';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
 
@@ -24,85 +24,72 @@ type ChallengeLeaderboardScreenNavigationProp = NativeStackNavigationProp<
   'ChallengeLeaderboard'
 >;
 
+/** Add tier icon assets (tiers 1–10) and use in tier header, e.g.:
+ *  const TIER_ICONS: Record<number, ImageSourcePropType> = {
+ *    1: require('@/assets/tiers/tier-1.png'),
+ *    2: require('@/assets/tiers/tier-2.png'),
+ *    // ... 3–10
+ *  };
+ *  Then replace the tierIconPlaceholder View with:
+ *  <Image source={TIER_ICONS[tierNumber]} style={styles.tierIcon} />
+ */
+
 /**
- * Challenge Leaderboard Screen - Weekly leaderboard and active events
- * Matches web design exactly with podium display
+ * Challenge Leaderboard Screen - Tier-based weekly leaderboard and active events
  */
 export function ChallengeLeaderboardScreen() {
   const navigation = useNavigation<ChallengeLeaderboardScreenNavigationProp>();
   const { userId } = useAuth();
 
   const [activeView, setActiveView] = useState<'leaderboards' | 'events'>('leaderboards');
-  const [activeFilter, setActiveFilter] = useState<'global' | 'friends' | 'club'>('global');
   const [hasUnreadNotifications] = useState(false);
 
-  // Fetch leaderboard data
-  const { data: leaderboardData, loading: leaderboardLoading, error: leaderboardError } = useWeeklyLeaderboard(50);
-  const { data: myRankData, loading: myRankLoading } = useMyWeeklyRank(userId);
-  const { data: challengesData, loading: challengesLoading } = useChallengesWithProgress(userId);
+  const { data: tierData, isLoading: tierLoading, error: leaderboardError, isFetching: tierFetching } = useTierLeaderboard(50);
+  const { data: challengesData, isLoading: challengesLoading } = useChallengesQuery(userId ?? null);
 
-  const isLoading = leaderboardLoading || myRankLoading;
+  const isInitialLoad = tierLoading && tierData === undefined;
+  const bottomNavPadding = useBottomNavPadding();
 
-  // Format points with commas
-  const formatPoints = (points: number) => {
-    return points.toLocaleString();
-  };
+  const formatPoints = (points: number) => points.toLocaleString();
 
-  // Calculate percentile
-  const calculatePercentile = (rank?: number, total?: number) => {
-    if (!rank || !total) return 'Top 50%';
-    const percentile = Math.ceil((rank / total) * 100);
-    if (percentile <= 5) return 'Top 5%';
-    if (percentile <= 10) return 'Top 10%';
-    if (percentile <= 25) return 'Top 25%';
-    return `Top ${percentile}%`;
-  };
+  const rows = tierData?.rows ?? [];
+  const tierName = tierData?.tierName ?? 'Tier';
+  const tierNumber = tierData?.rows?.[0]?.tier ?? tierData?.myRow?.tier ?? 1;
+  const myRow = tierData?.myRow;
 
-  // Split leaderboard into podium (top 3) and rankings (4+)
-  const podium =
-    leaderboardData?.slice(0, 3).map((player) => ({
-      rank: player.rank_week,
-      name: player.username,
-      points: formatPoints(player.xp_week || 0),
-      avatar: player.avatar_url || 'https://via.placeholder.com/150',
-      badge: (player as any).badge,
-      rankTitle: player.rank_title,
-    })) || [];
-
-  // Fill podium with placeholders if needed
+  type PodiumRow = { rank: number; name: string; points: string; avatar: string; isMe: boolean };
+  const podium: PodiumRow[] = rows.slice(0, 3).map((r) => ({
+    rank: r.rank,
+    name: r.username ?? 'Player',
+    points: formatPoints(r.xp_week),
+    avatar: r.avatar_url ?? 'https://via.placeholder.com/150',
+    isMe: r.is_me,
+  }));
   while (podium.length < 3) {
     podium.push({
       rank: podium.length + 1,
       name: 'Awaiting...',
       points: '0',
       avatar: 'https://via.placeholder.com/150',
-      badge: null,
-      rankTitle: null,
+      isMe: false,
     });
   }
-
-  // Reorder podium for display: [2nd, 1st, 3rd]
   const displayPodium = podium.length === 3 ? [podium[1], podium[0], podium[2]] : podium;
 
-  const rankings =
-    leaderboardData?.slice(3).map((player) => ({
-      rank: player.rank_week,
-      name: player.username,
-      rankTitle: player.rank_title || 'Golfer',
-      points: formatPoints(player.xp_week || 0),
-      trend: 'neutral' as const,
-      avatar: player.avatar_url || 'https://via.placeholder.com/150',
-      badge: (player as any).badge,
-    })) || [];
+  const rankings: (PodiumRow & { rankTitle?: string })[] = rows.slice(3).map((r) => ({
+    rank: r.rank,
+    name: r.username ?? 'Golfer',
+    points: formatPoints(r.xp_week),
+    avatar: r.avatar_url ?? 'https://via.placeholder.com/150',
+    isMe: r.is_me,
+  }));
 
-  const myRank = myRankData
+  const myRank = myRow
     ? {
-        rank: myRankData.rank_week,
+        rank: myRow.rank,
         name: 'You',
-        badge: (myRankData as any).badge || 'Player',
-        percentile: calculatePercentile(myRankData.rank_week, leaderboardData?.length),
-        points: formatPoints(myRankData.xp_week || 0),
-        avatar: myRankData.avatar_url || 'https://via.placeholder.com/150',
+        points: formatPoints(myRow.xp_week),
+        avatar: myRow.avatar_url ?? 'https://via.placeholder.com/150',
       }
     : null;
 
@@ -160,60 +147,19 @@ export function ChallengeLeaderboardScreen() {
           </View>
         </View>
 
-        {/* Filter Chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filters}
-          contentContainerStyle={styles.filtersContent}
-        >
-          <TouchableOpacity
-            style={[styles.filter, activeFilter === 'global' && styles.filterActive]}
-            onPress={() => setActiveFilter('global')}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                activeFilter === 'global' && styles.filterTextActive,
-              ]}
-            >
-              Global
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filter, activeFilter === 'friends' && styles.filterActive]}
-            onPress={() => setActiveFilter('friends')}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                activeFilter === 'friends' && styles.filterTextActive,
-              ]}
-            >
-              Friends
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filter, activeFilter === 'club' && styles.filterActive]}
-            onPress={() => setActiveFilter('club')}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                activeFilter === 'club' && styles.filterTextActive,
-              ]}
-            >
-              Club
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
       </View>
       </SafeAreaView>
 
       {/* Main Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{
+          paddingBottom: activeView === 'leaderboards' && myRank ? bottomNavPadding + 88 : bottomNavPadding,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Loading State */}
-        {activeView === 'leaderboards' && isLoading && (
+        {activeView === 'leaderboards' && isInitialLoad && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>Loading leaderboard...</Text>
@@ -221,7 +167,7 @@ export function ChallengeLeaderboardScreen() {
         )}
 
         {/* Error State */}
-        {activeView === 'leaderboards' && !isLoading && leaderboardError && (
+        {activeView === 'leaderboards' && !isInitialLoad && leaderboardError && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorIcon}>⚠️</Text>
             <Text style={styles.errorText}>
@@ -231,8 +177,21 @@ export function ChallengeLeaderboardScreen() {
         )}
 
         {/* Leaderboards View */}
-        {activeView === 'leaderboards' && !isLoading && !leaderboardError && (
+        {activeView === 'leaderboards' && !isInitialLoad && !leaderboardError && (
           <>
+            {/* Tier: icon (placeholder) → tier name → details */}
+            <View style={styles.tierHeader}>
+              {/* Placeholder for tier icon (tier 1–10). Replace with: <Image source={tierIcons[tierNumber]} style={styles.tierIcon} /> */}
+              <View style={styles.tierIconPlaceholder}>
+                <Text style={styles.tierIconPlaceholderText}>{tierNumber}</Text>
+              </View>
+              <Text style={styles.tierName}>{tierName}</Text>
+              <Text style={styles.tierSubline}>
+                {myRow ? `Rank #${myRow.rank} • ${formatPoints(myRow.xp_week)} XP this week` : 'Loading your rank…'}
+              </Text>
+              {tierFetching ? <Text style={styles.tierUpdating}>Updating…</Text> : null}
+            </View>
+
             {/* Podium Section */}
             <View style={styles.podium}>
               <View style={styles.podiumGlow} />
@@ -284,16 +243,12 @@ export function ChallengeLeaderboardScreen() {
                         style={[
                           styles.podiumName,
                           player.rank === 1 && styles.podiumNameFirst,
+                          player.isMe && styles.podiumNameMe,
                         ]}
                         numberOfLines={1}
                       >
-                        {player.name}
+                        {player.isMe ? 'You' : player.name}
                       </Text>
-                      {player.badge && (
-                        <View style={styles.podiumBadge}>
-                          <Text style={styles.podiumBadgeText}>{player.badge}</Text>
-                        </View>
-                      )}
                       <Text
                         style={[
                           styles.podiumPoints,
@@ -311,7 +266,7 @@ export function ChallengeLeaderboardScreen() {
             {/* List Header */}
             <View style={styles.listHeader}>
               <Text style={styles.listHeaderText}>Golfer</Text>
-              <Text style={styles.listHeaderText}>Score</Text>
+              <Text style={styles.listHeaderText}>XP</Text>
             </View>
 
             {/* Ranking List */}
@@ -328,19 +283,13 @@ export function ChallengeLeaderboardScreen() {
                     <Text style={styles.rankNumber}>{player.rank}</Text>
                     <Image source={{ uri: player.avatar }} style={styles.rankAvatar} />
                     <View style={styles.rankInfo}>
-                      <View style={styles.rankNameRow}>
-                        <Text style={styles.rankName}>{player.name}</Text>
-                        {player.badge && (
-                          <View style={styles.rankBadge}>
-                            <Text style={styles.rankBadgeText}>{player.badge}</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.rankHandicap}>{player.rankTitle}</Text>
+                      <Text style={[styles.rankName, player.isMe && styles.rankNameMe]}>
+                        {player.isMe ? 'You' : player.name}
+                      </Text>
                     </View>
                     <View style={styles.rankScore}>
                       <Text style={styles.rankPoints}>{player.points}</Text>
-                      <Text style={styles.rankTrendNeutral}>-</Text>
+                      <Text style={styles.rankTrendNeutral}>pts</Text>
                     </View>
                   </View>
                 ))
@@ -354,7 +303,7 @@ export function ChallengeLeaderboardScreen() {
         {/* Events View */}
         {activeView === 'events' && (
           <View style={styles.eventsContent}>
-            {challengesLoading ? (
+            {(challengesLoading && challengesData === undefined) ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.loadingText}>Loading challenges...</Text>
@@ -417,25 +366,18 @@ export function ChallengeLeaderboardScreen() {
           </View>
         )}
 
-        {/* Bottom padding for my rank card */}
-        <View style={{ height: activeView === 'leaderboards' && myRank ? 120 : 32 }} />
       </ScrollView>
 
       {/* Sticky My Rank - Only show on leaderboards view */}
       {activeView === 'leaderboards' && myRank && (
-        <View style={styles.myRankWrapper}>
+        <View style={[styles.myRankWrapper, { bottom: bottomNavPadding }]}>
           <View style={styles.myRank}>
             <View style={styles.myRankHighlight} />
             <Text style={styles.myRankNumber}>{myRank.rank}</Text>
             <Image source={{ uri: myRank.avatar }} style={styles.myRankAvatar} />
             <View style={styles.myRankInfo}>
-              <View style={styles.myRankNameRow}>
-                <Text style={styles.myRankName}>{myRank.name}</Text>
-                <View style={styles.myRankBadge}>
-                  <Text style={styles.myRankBadgeText}>{myRank.badge}</Text>
-                </View>
-              </View>
-              <Text style={styles.myRankPercentile}>{myRank.percentile}</Text>
+              <Text style={styles.myRankName}>{myRank.name}</Text>
+              <Text style={styles.myRankPercentile}>{tierName}</Text>
             </View>
             <View style={styles.myRankScore}>
               <Text style={styles.myRankPoints}>{myRank.points}</Text>
@@ -561,7 +503,54 @@ const styles = StyleSheet.create({
     color: colors.background,
   },
 
-  // Filter Chips
+  tierHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 8,
+    alignItems: 'center',
+  },
+  tierIconPlaceholder: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(28, 39, 31, 0.8)',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  tierIconPlaceholderText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.25)',
+  },
+  tierIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
+  tierName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.white,
+    textAlign: 'center',
+  },
+  tierSubline: {
+    marginTop: 4,
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  tierUpdating: {
+    marginTop: 4,
+    fontSize: 12,
+    color: colors.primary,
+    textAlign: 'center',
+  },
+
+  // Filter Chips (kept for layout; tier leaderboard has no filters)
   filters: {
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
@@ -727,6 +716,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  podiumNameMe: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
   podiumBadge: {
     paddingVertical: 2,
     paddingHorizontal: 6,
@@ -811,6 +804,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.white,
   },
+  rankNameMe: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
   rankBadge: {
     paddingVertical: 2,
     paddingHorizontal: 6,
@@ -840,10 +837,9 @@ const styles = StyleSheet.create({
     color: colors.gray[500],
   },
 
-  // My Rank (Sticky)
+  // My Rank (Sticky) - bottom set dynamically via useBottomNavPadding in JSX
   myRankWrapper: {
     position: 'absolute',
-    bottom: 88, // Above bottom nav
     left: 0,
     right: 0,
     paddingHorizontal: 16,

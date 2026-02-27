@@ -17,8 +17,8 @@ import {
   EyeIcon,
   EyeSlashIcon,
   FlashlightIcon,
-  GolfIcon,
   VideoCameraIcon,
+  PersonSimpleIcon,
 } from 'phosphor-react-native';
 import { IconButton, FilterChip } from '@/components';
 import { colors, spacing } from '@/styles/tokens';
@@ -147,7 +147,7 @@ export function SwingRecordingScreen() {
         {overlayVisible && (
           <View style={styles.silhouetteOverlay}>
             <View style={styles.silhouettePlaceholder}>
-              <GolfIcon size={200} color={colors.white} weight="duotone" />
+              <PersonSimpleIcon size={200} color={colors.white} weight="duotone" />
             </View>
           </View>
         )}

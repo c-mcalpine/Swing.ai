@@ -11,7 +11,16 @@
 export const STORAGE_BUCKETS = {
   SWING_FRAMES: 'swing-frames',
   SWING_OVERLAYS: 'swing-overlays',
+  PROFILE_PHOTO: 'profile-photo',
 } as const;
+
+/**
+ * Profile photo path: one image per user, replaced on new upload.
+ * Format: {user_id}/avatar.jpg
+ */
+export function getProfilePhotoPath(userId: string): string {
+  return `${userId}/avatar.jpg`;
+}
 
 /**
  * Generate storage path for a swing frame

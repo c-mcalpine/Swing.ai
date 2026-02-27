@@ -22,6 +22,15 @@ type NavItem = {
   Icon: React.ComponentType<{ size?: number; color?: string; weight?: any}>;
 };
 
+/** Height of the nav bar (inner) without safe area. Use with useBottomNavPadding for content. */
+export const BOTTOM_NAV_BAR_HEIGHT = 72;
+
+/** Padding to add at the bottom of screen content so it is not covered by the bottom nav. */
+export function useBottomNavPadding(): number {
+  const insets = useSafeAreaInsets();
+  return BOTTOM_NAV_BAR_HEIGHT + Math.max(insets.bottom, 10);
+}
+
 const navItems: NavItem[] = [
   { id: 'home', label: 'Home', screen: 'Home', Icon: HouseIcon },
   { id: 'review', label: 'Review', screen: 'Review', Icon: BookOpenIcon },

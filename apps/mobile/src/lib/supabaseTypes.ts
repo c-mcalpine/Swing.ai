@@ -536,6 +536,8 @@ export interface Database {
           swing_diagnostic_id: number | null;
           created_at: string;
           updated_at: string;
+          lesson_id: number | null;
+          session_type: string | null;
         };
         Insert: {
           id?: number;
@@ -551,6 +553,8 @@ export interface Database {
           swing_diagnostic_id?: number | null;
           created_at?: string;
           updated_at?: string;
+          lesson_id?: number | null;
+          session_type?: string | null;
         };
         Update: {
           id?: number;
@@ -566,6 +570,8 @@ export interface Database {
           swing_diagnostic_id?: number | null;
           created_at?: string;
           updated_at?: string;
+          lesson_id?: number | null;
+          session_type?: string | null;
         };
         Relationships: [];
       };
@@ -1179,6 +1185,72 @@ export interface Database {
         };
         Relationships: [];
       };
+      tier_definition: {
+        Row: {
+          tier: number;
+          name: string;
+          sort_order: number;
+        };
+        Insert: {
+          tier: number;
+          name: string;
+          sort_order: number;
+        };
+        Update: {
+          tier?: number;
+          name?: string;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
+      tier_week_result: {
+        Row: {
+          week_start: string;
+          user_id: string;
+          prior_tier: number;
+          new_tier: number;
+          xp_week: number;
+          outcome: string;
+          computed_at: string;
+        };
+        Insert: {
+          week_start: string;
+          user_id: string;
+          prior_tier: number;
+          new_tier: number;
+          xp_week?: number;
+          outcome: string;
+          computed_at?: string;
+        };
+        Update: {
+          week_start?: string;
+          user_id?: string;
+          prior_tier?: number;
+          new_tier?: number;
+          xp_week?: number;
+          outcome?: string;
+          computed_at?: string;
+        };
+        Relationships: [];
+      };
+      user_tier_state: {
+        Row: {
+          user_id: string;
+          current_tier: number;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          current_tier: number;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          current_tier?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       weekly_xp_user: {
         Row: {
           week_start: string;
@@ -1229,6 +1301,27 @@ export interface Database {
           xp_awarded: number;
           new_total_xp: number;
           week_xp: number;
+        }>;
+      };
+      ensure_user_tier_state: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
+      get_tier_leaderboard: {
+        Args: {
+          p_week_start: string;
+          p_limit?: number;
+        };
+        Returns: Array<{
+          week_start: string;
+          tier: number;
+          tier_name: string;
+          user_id: string;
+          username: string | null;
+          avatar_url: string | null;
+          xp_week: number;
+          rank: number;
+          is_me: boolean;
         }>;
       };
     }

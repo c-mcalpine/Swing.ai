@@ -1,4 +1,7 @@
+import { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useAuth } from '@/lib/AuthContext';
+import { usePrefetchAppQueries } from '@/hooks/useQueries';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 import { CaptureScreen } from '@/screens/CaptureScreen';
@@ -39,9 +42,21 @@ export type AppStackParamList = {
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
+/** Prefetch tab data once when app stack mounts so tab switches are instant. */
+function AppStackPrefetch() {
+  const { userId } = useAuth();
+  const prefetch = usePrefetchAppQueries();
+  useEffect(() => {
+    if (userId) prefetch(userId);
+  }, [userId, prefetch]);
+  return null;
+}
+
 export function AppStack() {
   return (
-    <Stack.Navigator
+    <>
+      <AppStackPrefetch />
+      <Stack.Navigator
       initialRouteName="Home"
       screenOptions={{
         headerShown: true,
@@ -180,5 +195,6 @@ export function AppStack() {
         }}
       />
     </Stack.Navigator>
+    </>
   );
 }

@@ -14,10 +14,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
 import { useAuth } from '@/lib/AuthContext';
 import { useUserProfile } from '@/hooks/useProfile';
-import { useSmartReviewPlan, useSubmitReviewResult } from '@/hooks/useSmartReview';
+import { useSmartReviewPlanQuery } from '@/hooks/useQueries';
+import { useSubmitReviewResult } from '@/hooks/useSmartReview';
 import { useSwingTaxonomy } from '@/hooks/useTaxonomy';
 import { HeroCard, HorizontalCard } from '@/components/Card';
-import { BottomNav } from '@/components/BottomNav';
+import { BottomNav, useBottomNavPadding } from '@/components/BottomNav';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
 import type { Database } from '@/lib/supabaseTypes';
@@ -53,18 +54,12 @@ function itemDisplayDescription(
 export function ReviewScreen() {
   const navigation = useNavigation<ReviewScreenNavigationProp>();
   const { userId } = useAuth();
+  const bottomNavPadding = useBottomNavPadding();
   const { data: profile } = useUserProfile();
 
-  const { plan, loading: planLoading, error: planError, refetch: refetchPlan } = useSmartReviewPlan(10, null);
+  const { data: plan, isLoading: planLoading, error: planError, refetch: refetchPlan } = useSmartReviewPlanQuery();
   const { submit: submitReview, loading: submitLoading } = useSubmitReviewResult();
   const { data: taxonomy } = useSwingTaxonomy();
-
-  // Fetch plan on mount (catch so failed edge call doesn't cause unhandled rejection / nav reset)
-  useEffect(() => {
-    refetchPlan(10, null).catch((e) => {
-      console.error('[SmartReview] plan fetch failed', e);
-    });
-  }, [refetchPlan]);
 
   // Transform plan data to match existing UI structure
   const upNextLesson = useMemo(() => {
@@ -168,8 +163,8 @@ export function ReviewScreen() {
   const circumference = 2 * Math.PI * 10;
   const offset = circumference - (progressPercentage / 100) * circumference;
 
-  // Show loading state
-  if (planLoading) {
+  // Full-page loading only when we have no cached plan (first load)
+  if (planLoading && !plan) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -213,7 +208,7 @@ export function ReviewScreen() {
       </SafeAreaView>
 
       {/* Main Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: bottomNavPadding }} showsVerticalScrollIndicator={false}>
         {/* Up Next Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>

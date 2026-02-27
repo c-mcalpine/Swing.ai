@@ -244,7 +244,7 @@ CREATE TABLE public.profiles (
 CREATE TABLE public.review_completion (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   user_id uuid NOT NULL,
-  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['drill'::text, 'lesson'::text])),
+  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['drill'::text, 'lesson'::text, 'cue'::text])),
   item_id bigint NOT NULL,
   issue_slug text,
   score numeric NOT NULL,
@@ -355,6 +355,25 @@ CREATE TABLE public.swing_phase (
   description text,
   sort_order integer,
   CONSTRAINT swing_phase_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.tier_definition (
+  tier smallint NOT NULL CHECK (tier >= 1 AND tier <= 10),
+  name text NOT NULL,
+  sort_order smallint NOT NULL UNIQUE,
+  CONSTRAINT tier_definition_pkey PRIMARY KEY (tier)
+);
+CREATE TABLE public.tier_week_result (
+  week_start timestamp with time zone NOT NULL,
+  user_id uuid NOT NULL,
+  prior_tier smallint NOT NULL,
+  new_tier smallint NOT NULL,
+  xp_week bigint NOT NULL DEFAULT 0,
+  outcome text NOT NULL CHECK (outcome = ANY (ARRAY['promoted'::text, 'stayed'::text, 'demoted'::text])),
+  computed_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT tier_week_result_pkey PRIMARY KEY (week_start, user_id),
+  CONSTRAINT tier_week_result_prior_tier_fkey FOREIGN KEY (prior_tier) REFERENCES public.tier_definition(tier),
+  CONSTRAINT tier_week_result_new_tier_fkey FOREIGN KEY (new_tier) REFERENCES public.tier_definition(tier),
+  CONSTRAINT tier_week_result_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.user_achievement (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -471,7 +490,7 @@ CREATE TABLE public.user_review_event (
 CREATE TABLE public.user_review_item (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   user_id uuid NOT NULL,
-  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['drill'::text, 'lesson'::text])),
+  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['drill'::text, 'lesson'::text, 'cue'::text])),
   item_id bigint NOT NULL,
   issue_slug text,
   due_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -496,6 +515,14 @@ CREATE TABLE public.user_streak (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT user_streak_pkey PRIMARY KEY (user_id),
   CONSTRAINT user_streak_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.user_tier_state (
+  user_id uuid NOT NULL,
+  current_tier smallint NOT NULL,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_tier_state_pkey PRIMARY KEY (user_id),
+  CONSTRAINT user_tier_state_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT user_tier_state_current_tier_fkey FOREIGN KEY (current_tier) REFERENCES public.tier_definition(tier)
 );
 CREATE TABLE public.weekly_xp_user (
   week_start timestamp with time zone NOT NULL,
