@@ -135,6 +135,24 @@ export function ProfileScreen() {
 
   const xpPercentage = profile ? Math.min(100, (profile.xp / profile.xpMax) * 100) : 0;
 
+  // Swing DNA color bands: <30 red, <55 orange, <75 yellow, <90 light green, >=90 dark green
+  const getDnaColor = (score: number): string => {
+    if (score < 30) return '#ef4444';   // red
+    if (score < 55) return '#f97316';  // orange
+    if (score < 75) return '#eab308';  // yellow
+    if (score < 90) return '#86efac';  // light green
+    return '#13ec5b';                  // dark green (primary)
+  };
+
+  // Overall score is the average of the 6 DNA dimensions (stored on profile; show same for consistency)
+  const displayOverallScore = profile
+    ? Math.round(
+        (profile.tempoScore + profile.speedScore + profile.planeScore +
+         profile.rotationScore + profile.balanceScore + profile.powerScore) / 6
+      )
+    : 0;
+  const overallColor = profile ? getDnaColor(displayOverallScore) : colors.primary;
+
   // Calculate radar chart points from scores (0-100)
   const getRadarPoint = (
     score: number,
@@ -150,6 +168,9 @@ export function ProfileScreen() {
     return { x, y };
   };
 
+  const radarScores = profile
+    ? [profile.tempoScore, profile.speedScore, profile.planeScore, profile.rotationScore, profile.balanceScore, profile.powerScore]
+    : [];
   const radarPoints = profile
     ? [
         getRadarPoint(profile.tempoScore, 0), // Top
@@ -405,8 +426,8 @@ export function ProfileScreen() {
             <View style={styles.statsGlow} />
             <View style={styles.overallScore}>
               <Text style={styles.scoreLabel}>Overall Score</Text>
-              <Text style={styles.scoreValue}>
-                {profile.overallScore}
+              <Text style={[styles.scoreValue, { color: overallColor }]}>
+                {displayOverallScore}
                 <Text style={styles.scoreMax}>/100</Text>
               </Text>
             </View>
@@ -436,30 +457,36 @@ export function ProfileScreen() {
                 <Line stroke="white" strokeOpacity="0.1" strokeWidth="1" x1="150" x2="30" y1="110" y2="180" />
                 <Line stroke="white" strokeOpacity="0.1" strokeWidth="1" x1="150" x2="30" y1="110" y2="80" />
 
-                {/* Data Shape */}
-                <Polygon fill={colors.primary} fillOpacity="0.2" points={radarPointsStr} />
+                {/* Data Shape — colored by overall DNA band */}
+                <Polygon fill={overallColor} fillOpacity="0.2" points={radarPointsStr} />
                 <Polygon
                   fill="none"
                   points={radarPointsStr}
-                  stroke={colors.primary}
+                  stroke={overallColor}
                   strokeWidth="3"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
 
-                {/* Data Points */}
+                {/* Data Points — each vertex colored by that dimension's score */}
                 {radarPoints.map((point, idx) => (
-                  <Circle key={idx} cx={point.x} cy={point.y} fill={colors.primary} r="4" />
+                  <Circle
+                    key={idx}
+                    cx={point.x}
+                    cy={point.y}
+                    fill={radarScores[idx] != null ? getDnaColor(radarScores[idx]) : colors.primary}
+                    r="4"
+                  />
                 ))}
               </Svg>
 
-              {/* Labels */}
-              <Text style={[styles.radarLabel, styles.radarLabelTop]}>TEMPO</Text>
-              <Text style={[styles.radarLabel, styles.radarLabelTopRight]}>SPEED</Text>
-              <Text style={[styles.radarLabel, styles.radarLabelBottomRight]}>PLANE</Text>
-              <Text style={[styles.radarLabel, styles.radarLabelBottom]}>ROTATION</Text>
-              <Text style={[styles.radarLabel, styles.radarLabelBottomLeft]}>BALANCE</Text>
-              <Text style={[styles.radarLabel, styles.radarLabelTopLeft]}>POWER</Text>
+              {/* Labels — colored by each dimension's score */}
+              <Text style={[styles.radarLabel, styles.radarLabelTop, radarScores[0] != null && { color: getDnaColor(radarScores[0]) }]}>TEMPO</Text>
+              <Text style={[styles.radarLabel, styles.radarLabelTopRight, radarScores[1] != null && { color: getDnaColor(radarScores[1]) }]}>SPEED</Text>
+              <Text style={[styles.radarLabel, styles.radarLabelBottomRight, radarScores[2] != null && { color: getDnaColor(radarScores[2]) }]}>PLANE</Text>
+              <Text style={[styles.radarLabel, styles.radarLabelBottom, radarScores[3] != null && { color: getDnaColor(radarScores[3]) }]}>ROTATION</Text>
+              <Text style={[styles.radarLabel, styles.radarLabelBottomLeft, radarScores[4] != null && { color: getDnaColor(radarScores[4]) }]}>BALANCE</Text>
+              <Text style={[styles.radarLabel, styles.radarLabelTopLeft, radarScores[5] != null && { color: getDnaColor(radarScores[5]) }]}>POWER</Text>
             </View>
           </View>
         </View>

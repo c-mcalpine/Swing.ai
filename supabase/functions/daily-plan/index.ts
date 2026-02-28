@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
 
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const includeLessons = body.include_lessons ?? true;
-    const maxDrills = body.max_drills ?? 1;
+    const maxDrills = body.max_drills ?? 5;
     const maxCues = body.max_cues ?? 2;
 
     // 1) Get active lesson (chapter anchor)
@@ -77,27 +77,54 @@ Deno.serve(async (req) => {
 
     const issueSlug = activeLesson?.issue_slug ?? null;
 
-    // 2) Add drills tied to issue
-    if (issueSlug && maxDrills > 0) {
-      const { data: drillRows, error: drillErr } = await supabase
-        .from("drill_error")
-        .select("drill_id, weight, drill:drill_id (id, name)")
-        .eq("error_id", (await slugToErrorId(supabase, issueSlug)))
-        .order("weight", { ascending: false })
-        .limit(maxDrills);
+    // 2) Quick Drills: map from all diagnosed issues (user_curriculum_queue) to drill_error -> drills
+    if (maxDrills > 0) {
+      const { data: queueRows, error: queueErr } = await supabase
+        .from("user_curriculum_queue")
+        .select("issue_slug")
+        .eq("user_id", userId)
+        .in("status", ["active", "queued"])
+        .order("queue_rank", { ascending: true })
+        .limit(8);
 
-      if (drillErr) return json({ error: "db_error", detail: drillErr.message }, 500);
+      if (queueErr) return json({ error: "db_error", detail: queueErr.message }, 500);
 
-      for (const r of drillRows ?? []) {
-        if (r?.drill?.id) {
-          items.push({
-            type: "drill",
-            drill_id: r.drill.id,
-            name: r.drill.name,
-            issue_slug: issueSlug,
-            reason: "Daily practice for your current chapter",
-          });
+      const issueSlugs = [...new Set((queueRows ?? []).map((r) => r.issue_slug).filter(Boolean))] as string[];
+      const seenDrillIds = new Set<number>();
+      const drillsToAdd: { drill_id: number; name: string; issue_slug: string; reason: string }[] = [];
+
+      for (const slug of issueSlugs) {
+        if (drillsToAdd.length >= maxDrills) break;
+        try {
+          const errorId = await slugToErrorId(supabase, slug);
+          const perIssue = Math.max(1, Math.ceil(maxDrills / Math.max(1, issueSlugs.length)));
+          const { data: drillRows, error: drillErr } = await supabase
+            .from("drill_error")
+            .select("drill_id, weight, drill:drill_id (id, name)")
+            .eq("error_id", errorId)
+            .order("weight", { ascending: false })
+            .limit(perIssue + 2);
+
+          if (drillErr) continue;
+          for (const r of drillRows ?? []) {
+            if (r?.drill?.id && !seenDrillIds.has(r.drill.id)) {
+              seenDrillIds.add(r.drill.id);
+              drillsToAdd.push({
+                drill_id: r.drill.id,
+                name: r.drill.name,
+                issue_slug: slug,
+                reason: slug === issueSlug ? "Daily practice for your current chapter" : "Relevant to your swing focus",
+              });
+              if (drillsToAdd.length >= maxDrills) break;
+            }
+          }
+        } catch (_) {
+          // skip unknown slug
         }
+      }
+
+      for (const d of drillsToAdd) {
+        items.push({ type: "drill", drill_id: d.drill_id, name: d.name, issue_slug: d.issue_slug, reason: d.reason });
       }
     }
 

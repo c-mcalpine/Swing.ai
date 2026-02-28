@@ -110,10 +110,6 @@ export function HomeScreen() {
     navigation.navigate('DrillDetails', { drillId, fromSmartReview: false });
   };
 
-  const handleCaptureSwing = () => {
-    navigation.navigate('Capture');
-  };
-
   // Full-page loading only when we have no cached data (first load)
   if (isInitialLoad) {
     return (
@@ -242,14 +238,6 @@ export function HomeScreen() {
               </Text>
             </View>
           </View>
-        </View>
-
-        {/* Capture Swing CTA */}
-        <View style={styles.captureCta}>
-          <TouchableOpacity style={styles.captureBtn} onPress={handleCaptureSwing}>
-            <Text style={styles.captureBtnIcon}>📹</Text>
-            <Text style={styles.captureBtnText}>Capture Swing</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.divider} />
@@ -629,34 +617,6 @@ const styles = StyleSheet.create({
     color: '#9db9a6',
     marginTop: 8,
     textAlign: 'right',
-  },
-
-  // Capture CTA
-  captureCta: {
-    paddingHorizontal: 16,
-  },
-  captureBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  captureBtnIcon: {
-    fontSize: 24,
-  },
-  captureBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0a1510',
   },
 
   // Divider

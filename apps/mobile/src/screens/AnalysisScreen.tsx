@@ -12,8 +12,10 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSwingAnalysisData } from '@/hooks/useSwingAnalysisData';
 import { useUserProfile } from '@/hooks/useProfile';
+import { useDailyPlanQuery } from '@/hooks/useQueries';
 import { awardXp } from '@/lib/xp';
 import { Button } from '@/components/Button';
 import { colors, spacing, typography } from '@/styles/tokens';
@@ -31,11 +33,21 @@ export function AnalysisScreen() {
   const route = useRoute<AnalysisScreenRouteProp>();
   const { captureId } = route.params || {};
 
+  const queryClient = useQueryClient();
   const { data, loading, analyzing, error, timedOut, retryAnalysis } = useSwingAnalysisData(captureId);
   const { data: profile, refetch: refetchProfile } = useUserProfile();
+  const { data: dailyPlan, refetch: refetchDailyPlan } = useDailyPlanQuery();
   const [xpAwardResult, setXpAwardResult] = useState<{ xp_awarded: number; new_total_xp: number; week_xp: number } | null>(null);
   const awardAttemptedRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // After diagnosis, curriculum is built by build_curriculum_queue; refetch daily plan so we have the first lesson
+  useEffect(() => {
+    if (captureId != null) {
+      queryClient.invalidateQueries({ queryKey: ['dailyPlan'] });
+      refetchDailyPlan();
+    }
+  }, [captureId, queryClient, refetchDailyPlan]);
 
   useEffect(() => {
     if (!data?.analysis || !data?.capture?.id) return;
@@ -190,8 +202,14 @@ export function AnalysisScreen() {
     console.log('Start drill');
   };
 
+  const activeLesson = dailyPlan?.active_lesson ?? null;
+
   const handleNextSwing = () => {
-    navigation.navigate('Capture');
+    if (activeLesson?.id != null) {
+      navigation.navigate('DailyLesson', { lessonId: activeLesson.id, fromSmartReview: false });
+    } else {
+      navigation.navigate('Capture');
+    }
   };
 
   const circleCircumference = 2 * Math.PI * 45;
@@ -411,10 +429,10 @@ export function AnalysisScreen() {
           size="large"
           fullWidth
           onPress={handleNextSwing}
-          icon="→"
+          icon={activeLesson ? '▶' : '→'}
           iconPosition="right"
         >
-          Next Swing
+          {activeLesson ? "Start your first lesson" : "Next Swing"}
         </Button>
       </View>
     </View>

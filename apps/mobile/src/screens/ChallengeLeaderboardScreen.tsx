@@ -9,7 +9,7 @@ import {
   Image,
   SafeAreaView,
 } from 'react-native';
-import { BellIcon, BellRingingIcon, TrophyIcon } from 'phosphor-react-native';
+import { BellIcon, BellRingingIcon, TrophyIcon, CrownIcon } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '@/lib/AuthContext';
@@ -207,7 +207,7 @@ export function ChallengeLeaderboardScreen() {
                     <View style={styles.podiumAvatarWrapper}>
                       {player.rank === 1 && (
                         <View style={styles.crown}>
-                          <Text style={styles.crownIcon}>👑</Text>
+                          <CrownIcon size={24} color={colors.white} weight="regular" />
                         </View>
                       )}
                       <View

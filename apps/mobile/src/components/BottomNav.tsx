@@ -72,7 +72,7 @@ export function BottomNav({ activePage }: BottomNavProps) {
               <View key={item.id} style={styles.fabWrapper}>
                 <TouchableOpacity
                   style={styles.fab}
-                  onPress={() => navigation.navigate({ name: item.screen as any, params: undefined })}
+                  onPress={() => navigation.push(item.screen as any)}
                   accessibilityLabel={item.label}
                   accessibilityRole="button"
                   activeOpacity={0.85}

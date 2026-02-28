@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '@/lib/AuthContext';
 import { usePrefetchAppQueries } from '@/hooks/useQueries';
@@ -106,13 +107,24 @@ export function AppStack() {
       />
       
       {/* Detail Screens - Slide animation */}
-      <Stack.Screen 
-        name="Capture" 
+      <Stack.Screen
+        name="Capture"
         component={CaptureScreen}
-        options={{ 
+        options={({ navigation }) => ({
           title: 'Record Swing',
           animation: 'slide_from_right',
-        }}
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={headerBackStyle.touchable}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+            >
+              <Text style={headerBackStyle.text}>←</Text>
+            </TouchableOpacity>
+          ),
+        })}
       />
       <Stack.Screen 
         name="Analysis" 
@@ -198,3 +210,19 @@ export function AppStack() {
     </>
   );
 }
+
+const headerBackStyle = StyleSheet.create({
+  touchable: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginLeft: 4,
+    justifyContent: 'center',
+    minHeight: 44,
+    minWidth: 44,
+  },
+  text: {
+    fontSize: 28,
+    color: '#13ec5b',
+    fontWeight: '600',
+  },
+});

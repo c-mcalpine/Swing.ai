@@ -306,6 +306,22 @@ CREATE TABLE public.swing_diagnostic (
   CONSTRAINT swing_diagnostic_pkey PRIMARY KEY (id),
   CONSTRAINT swing_diagnostic_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
+CREATE TABLE public.swing_dna_observation (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  capture_id bigint NOT NULL,
+  overall smallint NOT NULL,
+  tempo smallint NOT NULL,
+  speed smallint NOT NULL,
+  plane smallint NOT NULL,
+  rotation smallint NOT NULL,
+  balance smallint NOT NULL,
+  power smallint NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT swing_dna_observation_pkey PRIMARY KEY (id),
+  CONSTRAINT swing_dna_observation_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT swing_dna_observation_capture_id_fkey FOREIGN KEY (capture_id) REFERENCES public.swing_capture(id)
+);
 CREATE TABLE public.swing_error (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   slug text NOT NULL UNIQUE,

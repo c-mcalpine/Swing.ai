@@ -7,7 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // ============================================
 const ANALYSIS_CONFIG = {
   model: "gpt-5-mini",           // OpenAI model
-  prompt_version: "1",             // Bump when prompt changes
+  prompt_version: "2",             // Bump when prompt changes (v2: inject DB slugs)
   schema_version: "1",             // Bump when output schema changes  
   pose_extractor_version: "mediapipe-pose-lite-1.0",  // Client-side pose extraction version
 } as const;
@@ -113,11 +113,34 @@ Deno.serve(async (req) => {
       poseExtractorVersion: ANALYSIS_CONFIG.pose_extractor_version,
     });
 
-    // 5) Build prompt (strict JSON output)
-    const poseSummary = capture.pose_summary ?? {};
-    const prompt = buildPrompt({ poseSummary, signedImages });
+    // 5) Fetch allowed slugs (and ids for validation) from DB — issue_scores and mechanic_scores keys MUST match these
+    const { data: errorsRows, error: errErr } = await supabase
+      .from("swing_error")
+      .select("id, slug, name");
+    if (errErr) {
+      await supabase.from("swing_capture").update({ status: "failed" }).eq("id", capture_id);
+      return json({ error: "db_error", detail: "swing_error: " + errErr.message }, 500);
+    }
+    const allowedErrors = (errorsRows ?? []) as Array<{ id: number; slug: string; name: string }>;
+    const { data: mechanicsRows, error: mechErr } = await supabase
+      .from("swing_mechanic")
+      .select("slug, name");
+    if (mechErr) {
+      await supabase.from("swing_capture").update({ status: "failed" }).eq("id", capture_id);
+      return json({ error: "db_error", detail: "swing_mechanic: " + mechErr.message }, 500);
+    }
+    const allowedMechanics = (mechanicsRows ?? []) as Array<{ slug: string; name: string }>;
 
-    // 6) Call OpenAI (Responses API; vision)
+    // 6) Build prompt (strict JSON output) with allowed slugs so model uses only DB terms
+    const poseSummary = capture.pose_summary ?? {};
+    const prompt = buildPrompt({
+      poseSummary,
+      signedImages,
+      allowedErrors,
+      allowedMechanics,
+    });
+
+    // 7) Call OpenAI (Responses API; vision)
     const model = ANALYSIS_CONFIG.model;
     const openaiRes = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -161,14 +184,56 @@ Deno.serve(async (req) => {
       return json({ error: "invalid_model_json", rawText }, 500);
     }
 
-    // 7) Persist swing_analysis with full versioning
-    const issue_scores = parsed.issue_scores ?? {};
-    const mechanic_scores = parsed.mechanic_scores ?? {};
+    // 8) Restrict to DB slugs only — never persist keys that don't exist in swing_error / swing_mechanic
+    const allowedErrorSlugs = new Set(allowedErrors.map((e) => e.slug));
+    const allowedMechanicSlugs = new Set(allowedMechanics.map((m) => m.slug));
+    const rawIssueScores = parsed.issue_scores ?? {};
+    const rawMechanicScores = parsed.mechanic_scores ?? {};
+    const issue_scores: Record<string, number> = {};
+    for (const [key, val] of Object.entries(rawIssueScores)) {
+      if (allowedErrorSlugs.has(key) && typeof val === "number") issue_scores[key] = val;
+    }
+    const mechanic_scores: Record<string, number> = {};
+    for (const [key, val] of Object.entries(rawMechanicScores)) {
+      if (allowedMechanicSlugs.has(key) && typeof val === "number") mechanic_scores[key] = val;
+    }
+
+    // 8b) Restrict recommended_lesson_ids and recommended_drill_ids to real rows tied to diagnosed issues
+    const diagnosedErrorIds = allowedErrors
+      .filter((e) => Object.prototype.hasOwnProperty.call(issue_scores, e.slug))
+      .map((e) => e.id);
+    let validLessonIds: number[] = [];
+    let validDrillIds: number[] = [];
+    if (diagnosedErrorIds.length > 0) {
+      const { data: lessonRows } = await supabase
+        .from("lesson")
+        .select("id")
+        .in("primary_error_id", diagnosedErrorIds);
+      validLessonIds = (lessonRows ?? []).map((r: { id: number }) => r.id);
+      const { data: drillErrorRows } = await supabase
+        .from("drill_error")
+        .select("drill_id")
+        .in("error_id", diagnosedErrorIds);
+      validDrillIds = [...new Set((drillErrorRows ?? []).map((r: { drill_id: number }) => r.drill_id))];
+    }
+    const rawLessonIds = Array.isArray(parsed.recommended_lesson_ids) ? parsed.recommended_lesson_ids : [];
+    const rawDrillIds = Array.isArray(parsed.recommended_drill_ids) ? parsed.recommended_drill_ids : [];
+    const toNum = (x: unknown) => (typeof x === "number" ? x : typeof x === "string" ? parseInt(x, 10) : NaN);
+    const recommended_lesson_ids = rawLessonIds
+      .map(toNum)
+      .filter((n) => !Number.isNaN(n) && validLessonIds.includes(n));
+    const recommended_drill_ids = rawDrillIds
+      .map(toNum)
+      .filter((n) => !Number.isNaN(n) && validDrillIds.includes(n));
+
+    // 9) Persist swing_analysis with full versioning
     const club_angle_refs = parsed.club_angle_refs ?? {};
-    const recommended_lesson_ids = parsed.recommended_lesson_ids ?? null;
-    const recommended_drill_ids = parsed.recommended_drill_ids ?? null;
     const overall_confidence = parsed.confidence ?? null;
-    const issue_confidence = parsed.issue_confidence ?? {};
+    const rawIssueConfidence = parsed.issue_confidence ?? {};
+    const issue_confidence: Record<string, number> = {};
+    for (const [key, val] of Object.entries(rawIssueConfidence)) {
+      if (allowedErrorSlugs.has(key) && typeof val === "number") issue_confidence[key] = val;
+    }
 
     const { error: insErr } = await supabase.from("swing_analysis").insert({
       capture_id,
@@ -194,7 +259,7 @@ Deno.serve(async (req) => {
       return json({ error: "db_insert_failed", detail: insErr }, 500);
     }
 
-    // 7) Update skill vector via RPC
+    // 10) Update skill vector via RPC
     const { error: rpcErr } = await supabase.rpc("apply_swing_issue_update", {
       p_capture_id: capture_id,
       p_issue_scores: issue_scores,
@@ -205,16 +270,35 @@ Deno.serve(async (req) => {
       return json({ error: "rpc_failed", detail: rpcErr }, 500);
     }
 
-    // 8) Done
+    // 11) Done
     await supabase.from("swing_capture").update({ status: "analyzed" }).eq("id", capture_id);
 
-    // 9) Build curriculum queue from issue_scores (feeds daily-plan)
+    // 12) Build curriculum queue from issue_scores (feeds daily-plan)
     const { error: planErr } = await supabase.rpc("build_curriculum_queue", {
       p_capture_id: capture_id,
     });
     if (planErr) {
       console.error("[swing-analysis] build_curriculum_queue failed:", planErr);
       // Do NOT fail the whole request; analysis is still valuable
+    }
+
+    // 13) Swing DNA: compute raw 6 dimensions + overall from mechanic_scores + pose_summary, then update profile (history-aware)
+    const poseSummary = (capture as any).pose_summary ?? {};
+    const rawDna = computeRawSwingDna(mechanic_scores, poseSummary);
+    const { error: dnaErr } = await supabase.rpc("apply_swing_dna_update", {
+      p_user_id: userRes.user.id,
+      p_capture_id: capture_id,
+      p_raw_overall: rawDna.overall,
+      p_raw_tempo: rawDna.tempo,
+      p_raw_speed: rawDna.speed,
+      p_raw_plane: rawDna.plane,
+      p_raw_rotation: rawDna.rotation,
+      p_raw_balance: rawDna.balance,
+      p_raw_power: rawDna.power,
+    });
+    if (dnaErr) {
+      console.error("[swing-analysis] apply_swing_dna_update failed:", dnaErr);
+      // Do NOT fail the whole request
     }
 
     return json({ ok: true, capture_id, analysis: parsed });
@@ -258,10 +342,60 @@ function extractResponseText(responsesApiPayload: any): string {
   throw new Error("Could not extract model text from OpenAI response");
 }
 
-function buildPrompt(args: { poseSummary: any; signedImages: Array<{ phase: string; url: string; kind: string }> }) {
-  // Keep this tight. The model MUST output exactly one JSON object.
-  // IMPORTANT: issue_scores keys must match swing_error.slug values in your DB.
+/** Compute raw Swing DNA (0-100) from mechanic_scores and pose_summary for this swing. */
+function computeRawSwingDna(
+  mechanicScores: Record<string, number>,
+  poseSummary: any
+): { overall: number; tempo: number; speed: number; plane: number; rotation: number; balance: number; power: number } {
+  const toPct = (v: number | undefined) => Math.round(Math.min(100, Math.max(0, (v ?? 0.5) * 100)));
+  const avg = (...vals: (number | undefined)[]) => {
+    const filtered = vals.filter((x) => typeof x === "number");
+    if (filtered.length === 0) return 50;
+    return Math.round(
+      Math.min(100, Math.max(0, (filtered.reduce((a, b) => a + b!, 0) / filtered.length) * 100))
+    );
+  };
+  // Mechanic slugs from DB (hyphenated)
+  const m = mechanicScores;
+  const rotation = avg(m["hip-rotation"], m["shoulder-turn"]);
+  const plane = avg(m["swing-path"], m["face-control"]);
+  const balance = avg(m["stance-width"], m["weight-shift-back"], m["weight-shift-forward"]);
+  const power = avg(m["weight-shift-forward"], m["shoulder-turn"]);
+  // Tempo from pose (backswing:downswing ratio; ideal ~3)
+  const swingTempo = typeof poseSummary?.swing_tempo === "number" ? poseSummary.swing_tempo : null;
+  const tempo =
+    swingTempo != null
+      ? Math.round(Math.min(100, Math.max(0, 50 + (swingTempo - 2) * 25)))
+      : 50;
+  // Speed: no direct mechanic; use power as proxy
+  const speed = power;
+  const overall = Math.round(
+    (tempo + speed + plane + rotation + balance + power) / 6
+  );
+  return {
+    overall,
+    tempo,
+    speed,
+    plane,
+    rotation,
+    balance,
+    power,
+  };
+}
+
+function buildPrompt(args: {
+  poseSummary: any;
+  signedImages: Array<{ phase: string; url: string; kind: string }>;
+  allowedErrors: Array<{ slug: string; name: string }>;
+  allowedMechanics: Array<{ slug: string; name: string }>;
+}) {
   const phaseList = args.signedImages.map((x) => `${x.phase}:${x.kind}`).join(", ");
+  const issueSlugList = args.allowedErrors.length
+    ? args.allowedErrors.map((e) => `${e.slug} (${e.name})`).join(", ")
+    : "(none in DB)";
+  const mechanicSlugList = args.allowedMechanics.length
+    ? args.allowedMechanics.map((m) => `${m.slug} (${m.name})`).join(", ")
+    : "(none in DB)";
   return `
 You are a golf swing coach + analyst. You will be given keyframe images and pose overlays for a single swing.
 You MUST output exactly one JSON object and nothing else.
@@ -270,31 +404,38 @@ Context:
 - Images represent phases (some may repeat): ${phaseList}
 - pose_summary (derived from MediaPipe Pose): ${JSON.stringify(args.poseSummary)}
 
+ALLOWED SLUGS (you MUST use only these exact strings as object keys):
+- For issue_scores and issue_confidence, use ONLY these issue slugs: ${issueSlugList}
+- For mechanic_scores, use ONLY these mechanic slugs: ${mechanicSlugList}
+Do not invent any other slugs. If you see an issue that matches one of the above, use its slug exactly. If you see something that does not match any listed issue/mechanic, do not include it.
+
 Task:
-1) Identify likely swing issues using the provided images + pose_summary.
-2) Output severity scores 0..1 for each issue in issue_scores.
-3) For each issue, also provide a confidence score in issue_confidence (how sure you are about that issue).
-4) Provide recommended_drill_ids and recommended_lesson_ids ONLY if confident; otherwise return empty arrays.
-5) Provide club_angle_refs as weak reference signals only (0..1 or -1..1), not strict measurements.
-6) Provide short coach_notes for UI.
+1) Identify likely swing issues using the provided images + pose_summary. For each issue you report, use exactly one of the allowed issue slugs above.
+2) Output severity 0..1 for each in issue_scores (only keys from the allowed issue list).
+3) For each issue, provide issue_confidence 0..1 (same keys as issue_scores).
+4) For mechanics you can assess, use only the allowed mechanic slugs in mechanic_scores (0..1).
+5) recommended_lesson_ids and recommended_drill_ids: use real lesson.id and drill.id values that target the issues you reported (lessons by primary_error_id, drills by drill_error). If you don't know exact IDs, return empty arrays; the server only persists IDs that exist and match the diagnosed issues.
+6) Provide club_angle_refs as weak reference signals only (0..1 or -1..1).
+7) Provide short coach_notes for UI.
 
 OUTPUT JSON SCHEMA (exact keys):
 {
-  "confidence": number,                     // overall analysis confidence 0..1
-  "issue_scores": { [issue_slug: string]: number },   // severity 0..1; keys should match your swing_error.slug set
-  "issue_confidence": { [issue_slug: string]: number }, // per-issue confidence 0..1 (same keys as issue_scores)
-  "mechanic_scores": { [mechanic_slug: string]: number }, // optional 0..1
-  "club_angle_refs": { [name: string]: number },      // weak signals only
-  "recommended_drill_ids": number[],        // drill.id values
-  "recommended_lesson_ids": number[],       // lesson.id values
+  "confidence": number,
+  "issue_scores": { [issue_slug: string]: number },
+  "issue_confidence": { [issue_slug: string]: number },
+  "mechanic_scores": { [mechanic_slug: string]: number },
+  "club_angle_refs": { [name: string]: number },
+  "recommended_drill_ids": number[],
+  "recommended_lesson_ids": number[],
   "coach_notes": string
 }
 
 Rules:
 - Do NOT output prose outside JSON.
-- Keep issue_scores limited to the top ~3-6 issues you actually see.
-- If uncertain about an issue, set its issue_confidence value lower.
-- If overall uncertain, lower confidence and keep recommendations empty arrays.
+- issue_scores and issue_confidence keys MUST be exactly one of: ${args.allowedErrors.map((e) => e.slug).join(", ") || "none"}.
+- mechanic_scores keys MUST be exactly one of: ${args.allowedMechanics.map((m) => m.slug).join(", ") || "none"}.
+- Keep issue_scores to the top ~3-6 issues you actually see from the allowed list.
+- If uncertain, set issue_confidence lower or omit that issue.
 `.trim();
 }
 

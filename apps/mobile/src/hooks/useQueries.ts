@@ -15,7 +15,7 @@ type LeaderboardRow = Database['public']['Views']['weekly_xp_leaderboard']['Row'
 // Shared query fns for prefetch (must match useQuery queryFn)
 const fetchProfile = (userId: string) => getUserProfile(userId);
 const fetchDailyPlan = () =>
-  edgeFunctions.getDailyPlan({ include_lessons: true, max_drills: 2, max_cues: 2 });
+  edgeFunctions.getDailyPlan({ include_lessons: true, max_drills: 5, max_cues: 2 });
 const fetchSmartReviewPlan = () =>
   edgeFunctions.getSmartReviewPlan({ budget_min: 10, environment: null, include_lessons: true });
 const fetchLeaderboard = async (limit: number) => {
