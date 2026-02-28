@@ -15,9 +15,10 @@
    - Calls **`build_curriculum_queue(capture_id)`**.
 
 3. **`build_curriculum_queue` (DB function)**  
-   - Reads `issue_scores` from that analysis.  
-   - For each issue slug, finds `swing_error` and `lesson` (where `lesson.primary_error_id = swing_error.id`).  
-   - Inserts/updates **`user_curriculum_queue`** and sets one lesson to `active`.
+   - Reads **only** `issue_scores` from that analysis (not `recommended_lesson_ids` / `recommended_drill_ids`).  
+   - For each issue slug in the JSONB, finds `swing_error` (by slug) and **any `lesson` where `lesson.primary_error_id = swing_error.id`**.  
+   - Inserts into **`user_curriculum_queue`** only when that join returns a row. If no lesson targets that error, that slug adds **no** queue row.  
+   - Sets one lesson to `active` and returns.
 
 4. **Daily plan (edge function)**  
    - Does **not** write anything.  
@@ -32,10 +33,11 @@ So: **content appears only after at least one swing has been analyzed** and your
 1. **Do a new swing capture**  
    Not “swing review”. Go to Capture → record a swing and wait until analysis finishes (you can then land on the Analysis screen). That run triggers `build_curriculum_queue`.
 
-2. **Check the DB**  
-   - `user_curriculum_queue`: any rows for your `user_id`?  
-   - `lesson`: any rows with `primary_error_id` pointing to `swing_error` rows whose `slug` appears in your analysis `issue_scores`?  
-   If there are no such lessons, the queue stays empty and daily plan has no lesson to show.
+2. **Queue empty = no lesson targets your issues**  
+   The queue only gets rows when **for at least one slug in `issue_scores`** there is a **lesson** with `primary_error_id` = that `swing_error.id`.  
+   - Check: `SELECT id, slug FROM swing_error;` and `SELECT id, title, primary_error_id FROM lesson;`.  
+   - If every `lesson.primary_error_id` is NULL (or points to an error that’s not in your `issue_scores`), the queue stays empty.  
+   - Fix: set `primary_error_id` on at least one lesson to a `swing_error.id` whose `slug` appears in your analyses (e.g. `over-the-top`, `casting`). See `database-records/scripts/ensure_curriculum_lesson.sql` for a runnable fix.
 
 3. **Deploy the daily-plan function**  
    The Quick Drills and “first lesson” behavior use the updated **daily-plan** edge function. Deploy it so the app gets the new response shape and logic.
