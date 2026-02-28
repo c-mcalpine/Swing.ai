@@ -1,6 +1,6 @@
 // supabase/functions/swing-analysis/index.ts
 // @ts-nocheck - Deno Edge Function - types are provided at runtime
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 // ============================================
 // VERSIONING CONSTANTS - Update these when you change the analysis
@@ -283,7 +283,6 @@ Deno.serve(async (req) => {
     }
 
     // 13) Swing DNA: compute raw 6 dimensions + overall from mechanic_scores + pose_summary, then update profile (history-aware)
-    const poseSummary = (capture as any).pose_summary ?? {};
     const rawDna = computeRawSwingDna(mechanic_scores, poseSummary);
     const { error: dnaErr } = await supabase.rpc("apply_swing_dna_update", {
       p_user_id: userRes.user.id,
