@@ -1,8 +1,8 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
+import { TouchableOpacity, Text, View, StyleSheet, ViewStyle } from 'react-native';
 
 interface IconButtonProps {
-  icon: string;
+  icon: string | React.ReactNode;
   onPress?: () => void;
   size?: 'small' | 'medium' | 'large';
   variant?: 'default' | 'ghost';
@@ -22,6 +22,7 @@ export function IconButton({
   disabled = false,
   style,
 }: IconButtonProps) {
+  const isString = typeof icon === 'string';
   return (
     <TouchableOpacity
       style={[
@@ -35,7 +36,11 @@ export function IconButton({
       disabled={disabled}
       activeOpacity={0.7}
     >
-      <Text style={[styles.icon, styles[`icon_${size}`]]}>{icon}</Text>
+      {isString ? (
+        <Text style={[styles.icon, styles[`icon_${size}`]]}>{icon}</Text>
+      ) : (
+        <View>{icon}</View>
+      )}
     </TouchableOpacity>
   );
 }

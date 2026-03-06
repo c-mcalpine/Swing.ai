@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { colors } from '@/styles/tokens';
 
 interface MetaTagProps {
-  icon?: string;
+  icon?: React.ReactNode | string;
   label: string;
   variant?: 'default' | 'compact';
   style?: ViewStyle;
@@ -27,11 +27,14 @@ export function MetaTag({
         style,
       ]}
     >
-      {icon && (
-        <Text style={[styles.icon, variant === 'compact' && styles.iconCompact]}>
-          {icon}
-        </Text>
-      )}
+      {icon != null &&
+        (typeof icon === 'string' ? (
+          <Text style={[styles.icon, variant === 'compact' && styles.iconCompact]}>
+            {icon}
+          </Text>
+        ) : (
+          <View>{icon}</View>
+        ))}
       <Text style={[styles.label, variant === 'compact' && styles.labelCompact]}>
         {label}
       </Text>

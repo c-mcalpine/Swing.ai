@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,26 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+import {
+  AlignBottomIcon,
+  GolfIcon,
+  QuestionIcon,
+  TimerIcon,
+} from 'phosphor-react-native';
 import { IconButton, MetaTag, VideoPlayer, Button } from '@/components';
 import { useSubmitReviewResult } from '@/hooks/useSmartReview';
+import { useDrill } from '@/hooks/useDrill';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
+
+/** Placeholder when drill has no video URL in DB */
+const PLACEHOLDER_THUMB =
+  'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800';
 
 type DrillDetailsScreenNavigationProp = NativeStackNavigationProp<
   AppStackParamList,
@@ -32,58 +45,97 @@ interface Step {
  * Drill Details Screen - Detailed view of a specific drill with instructions
  * Matches web design exactly
  */
+function formatDuration(minutes: number | null): string {
+  if (minutes == null || minutes < 1) return '—';
+  if (minutes < 60) return `${minutes} min${minutes !== 1 ? 's' : ''}`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function difficultyLabel(d: number | null): string {
+  if (d == null) return 'All levels';
+  if (d === 1) return 'Beginner';
+  if (d === 2) return 'Intermediate';
+  if (d === 3) return 'Advanced';
+  return 'All levels';
+}
+
 export function DrillDetailsScreen() {
   const navigation = useNavigation<DrillDetailsScreenNavigationProp>();
   const route = useRoute<DrillDetailsScreenRouteProp>();
-  const drillId = (route.params as any)?.drillId;
+  const drillId = (route.params as any)?.drillId as number | undefined;
   const fromSmartReview = (route.params as any)?.fromSmartReview;
   const reviewItem = (route.params as any)?.reviewItem;
 
+  const { drill, loading: drillLoading, error: drillError } = useDrill(drillId);
   const [reps, setReps] = useState(0);
   const goalReps = 10;
   const { submit: submitReview, loading: submitting } = useSubmitReviewResult();
 
-  const drillData = {
-    title: 'The Gate Drill',
-    description:
-      'Improve your face control at impact by forcing the putter through a tight gate. This drill provides instant feedback on off-center strikes.',
-    videoThumb:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDIWsAWxVFVqgVuR-wCh0IYR4-2qHEnlFSkrr5ereCvRCaY3qQ93UwweuePmYV937CSYoX5NeZg-vEd0xfnfpu473DjPfqthGsTfAPOecATVgC3fMSa3a60kS54GVr2InYy058M13gY7A5yC8C09Fv5bmuGVEnxTjBdtICY3-_0R3oQMC6jWqMp2L0Vbrlnr6hijBPYabB2vWli9UcB-CUCcnz_ColoGxEwksKHQiOi9vXKiyOBHoUVIV4761yBsFYMTRXuZ4y7bvM',
-    duration: '05:00',
-    meta: [
-      { icon: '📊', label: 'Intermediate' },
-      { icon: '⏱', label: '5 mins' },
-      { icon: '⛳', label: 'Putter' },
-    ],
-  };
+  const { drillData, steps } = useMemo(() => {
+    if (!drill) {
+      return {
+        drillData: {
+          title: '',
+          description: '',
+          videoThumb: PLACEHOLDER_THUMB,
+          duration: '—',
+          meta: [] as { icon: React.ReactNode; label: string }[],
+        },
+        steps: [] as Step[],
+      };
+    }
+    const meta: { icon: React.ReactNode; label: string }[] = [];
+    if (drill.difficulty != null) {
+      meta.push({
+        icon: <AlignBottomIcon size={16} color={colors.primary} />,
+        label: difficultyLabel(drill.difficulty),
+      });
+    }
+    if (drill.min_duration_min != null && drill.min_duration_min > 0) {
+      meta.push({
+        icon: <TimerIcon size={16} color={colors.primary} />,
+        label: formatDuration(drill.min_duration_min),
+      });
+    }
+    if (drill.equipment?.trim()) {
+      meta.push({
+        icon: <GolfIcon size={16} color={colors.primary} />,
+        label: drill.equipment.trim(),
+      });
+    }
+    const durationStr =
+      drill.min_duration_min != null && drill.min_duration_min >= 1
+        ? (drill.min_duration_min < 60
+            ? `${String(drill.min_duration_min).padStart(2, '0')}:00`
+            : formatDuration(drill.min_duration_min))
+        : '—';
+    const stepsList: Step[] = [];
+    const overviewText = [drill.description, drill.objective].filter(Boolean).join('\n\n') || 'No description.';
+    stepsList.push({ id: 1, title: 'Overview', description: overviewText, isOpen: true });
+    if (drill.tips?.trim()) {
+      stepsList.push({ id: 2, title: 'Tips', description: drill.tips.trim(), isOpen: false });
+    }
+    return {
+      drillData: {
+        title: drill.name,
+        description: overviewText,
+        videoThumb: PLACEHOLDER_THUMB,
+        duration: durationStr,
+        meta,
+      },
+      steps: stepsList,
+    };
+  }, [drill]);
 
-  const steps: Step[] = [
-    {
-      id: 1,
-      title: 'Setup the Gate',
-      description:
-        'Place two tees into the ground, just wider than your putter head, to create a narrow gate for your stroke. Leave about 1/4 inch of clearance on each side.',
-      isOpen: true,
-    },
-    {
-      id: 2,
-      title: 'Ball Position',
-      description:
-        'Place the ball directly in the center of the gate. Ensure your eyes are directly over the ball for optimal alignment.',
-      isOpen: false,
-    },
-    {
-      id: 3,
-      title: 'Stroke Execution',
-      description:
-        'Make your stroke. If you hit a tee, your face angle was either open or closed. Reset and try to pass through cleanly.',
-      isOpen: false,
-    },
-  ];
+  const [expandedSteps, setExpandedSteps] = useState<number[]>([]);
 
-  const [expandedSteps, setExpandedSteps] = useState<number[]>(
-    steps.filter((step) => step.isOpen).map((step) => step.id)
-  );
+  React.useEffect(() => {
+    if (steps.length) {
+      setExpandedSteps(steps.filter((s) => s.isOpen).map((s) => s.id));
+    }
+  }, [drill?.id]);
 
   const toggleStep = (stepId: number) => {
     setExpandedSteps((prev) =>
@@ -115,11 +167,12 @@ export function DrillDetailsScreen() {
       Alert.alert('Complete at least one rep', 'Track your practice by completing at least one repetition.');
       return;
     }
+    if (drillId == null) return;
 
     try {
       const score = Math.min(1, reps / goalReps); // 0-1 score based on goal completion
       const durationMin = Math.ceil((reps * 2) / 60); // Estimate 2 mins per rep
-      
+
       await submitReview({
         item_type: 'drill',
         item_id: drillId,
@@ -141,6 +194,60 @@ export function DrillDetailsScreen() {
     }
   };
 
+  if (drillId == null) {
+    return (
+      <View style={styles.container}>
+        <SafeAreaView style={styles.safeAreaTop}>
+          <View style={styles.header}>
+            <IconButton icon="←" onPress={() => navigation.goBack()} />
+            <Text style={styles.headerTitle}>Drill</Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </SafeAreaView>
+        <View style={styles.centerMessage}>
+          <Text style={styles.messageText}>No drill selected.</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (drillLoading) {
+    return (
+      <View style={styles.container}>
+        <SafeAreaView style={styles.safeAreaTop}>
+          <View style={styles.header}>
+            <IconButton icon="←" onPress={() => navigation.goBack()} />
+            <Text style={styles.headerTitle}>Drill</Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </SafeAreaView>
+        <View style={styles.centerMessage}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.messageText, { marginTop: 16 }]}>Loading drill…</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (drillError || !drill) {
+    return (
+      <View style={styles.container}>
+        <SafeAreaView style={styles.safeAreaTop}>
+          <View style={styles.header}>
+            <IconButton icon="←" onPress={() => navigation.goBack()} />
+            <Text style={styles.headerTitle}>Drill</Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </SafeAreaView>
+        <View style={styles.centerMessage}>
+          <Text style={styles.messageText}>
+            {drillError ? 'Failed to load drill.' : 'Drill not found.'}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Top App Bar */}
@@ -148,9 +255,9 @@ export function DrillDetailsScreen() {
         <View style={styles.header}>
           <IconButton icon="←" onPress={() => navigation.goBack()} />
 
-          <Text style={styles.headerTitle}>Putting Essentials</Text>
+          <Text style={styles.headerTitle}>{drillData.title || 'Drill'}</Text>
 
-          <IconButton icon="❓" />
+          <IconButton icon={<QuestionIcon size={24} color="#ffffff" />} />
         </View>
       </SafeAreaView>
 
@@ -334,6 +441,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 22,
     letterSpacing: -0.27,
+  },
+  centerMessage: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  messageText: {
+    fontSize: 16,
+    color: '#9ca3af',
   },
 
   // Content
