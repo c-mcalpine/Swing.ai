@@ -102,7 +102,27 @@ CREATE TABLE public.drill (
   equipment text,
   xp_reward integer,
   is_beginner_friendly boolean,
+  verification_type text NOT NULL DEFAULT 'none'::text CHECK (verification_type = ANY (ARRAY['none'::text, 'reps'::text, 'hold'::text, 'timer'::text])),
+  verification_config jsonb,
   CONSTRAINT drill_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.drill_coach_session (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  drill_id bigint NOT NULL,
+  started_at timestamp with time zone NOT NULL DEFAULT now(),
+  finished_at timestamp with time zone,
+  duration_sec integer,
+  reps_attempted integer DEFAULT 0,
+  reps_valid integer DEFAULT 0,
+  avg_quality numeric,
+  hold_ms integer,
+  verification_type text NOT NULL DEFAULT 'none'::text,
+  telemetry jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT drill_coach_session_pkey PRIMARY KEY (id),
+  CONSTRAINT drill_coach_session_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT drill_coach_session_drill_id_fkey FOREIGN KEY (drill_id) REFERENCES public.drill(id)
 );
 CREATE TABLE public.drill_error (
   drill_id bigint NOT NULL,
@@ -253,6 +273,7 @@ CREATE TABLE public.review_completion (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   completion_day date DEFAULT ((occurred_at AT TIME ZONE 'UTC'::text))::date,
   client_event_id text UNIQUE,
+  completion_fingerprint text NOT NULL,
   CONSTRAINT review_completion_pkey PRIMARY KEY (id),
   CONSTRAINT review_completion_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT review_completion_issue_slug_fkey FOREIGN KEY (issue_slug) REFERENCES public.swing_error(slug)
