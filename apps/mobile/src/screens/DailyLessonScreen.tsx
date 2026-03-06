@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button, IconButton, VideoPlayer } from '@/components';
 import { useSwingTaxonomy } from '@/hooks/useTaxonomy';
 import { useSubmitReviewResult } from '@/hooks/useSmartReview';
@@ -29,6 +30,7 @@ type DailyLessonScreenRouteProp = RouteProp<AppStackParamList, 'DailyLesson'>;
 export function DailyLessonScreen() {
   const navigation = useNavigation<DailyLessonScreenNavigationProp>();
   const route = useRoute<DailyLessonScreenRouteProp>();
+  const queryClient = useQueryClient();
   const lessonId = (route.params as any)?.lessonId;
   const fromSmartReview = (route.params as any)?.fromSmartReview;
   const reviewItem = (route.params as any)?.reviewItem;
@@ -152,7 +154,7 @@ export function DailyLessonScreen() {
     // If from Smart Review, submit the completion
     if (fromSmartReview && reviewItem) {
       // Calculate score based on progress (0-1 scale)
-      const score = Math.max(0.5, progress / 100);
+      const score = totalCheckpoints > 0 ? Math.max(0.5, progress / 100) : 1;
 
       // Use lesson duration if available
       const durationMin = lesson?.duration_min || 10;
@@ -191,7 +193,7 @@ export function DailyLessonScreen() {
     } else {
       // Completed from Home daily plan: submit so backend seeds user_review_item and can advance curriculum
       if (lesson?.id != null) {
-        const score = Math.max(0.5, progress / 100);
+        const score = totalCheckpoints > 0 ? Math.max(0.5, progress / 100) : 1;
         const durationMin = lesson.duration_min ?? 10;
         try {
           const result = await submitReview({
@@ -201,6 +203,9 @@ export function DailyLessonScreen() {
             duration_min: durationMin,
             source: 'daily',
           });
+
+          await queryClient.invalidateQueries({ queryKey: ['dailyPlan'] });
+
           if (result?.xp_awarded) {
             Alert.alert('Lesson complete!', `+${result.xp_awarded} XP`, [
               { text: 'OK', onPress: () => navigation.navigate('Home') },
