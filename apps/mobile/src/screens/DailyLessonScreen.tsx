@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button, IconButton, VideoPlayer } from '@/components';
 import { useSwingTaxonomy } from '@/hooks/useTaxonomy';
@@ -34,9 +34,11 @@ export function DailyLessonScreen() {
   const reviewItem = (route.params as any)?.reviewItem;
 
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [progress, setProgress] = useState(35);
   const { data: taxonomy, loading, error } = useSwingTaxonomy();
   const { submit: submitReview, loading: submitting } = useSubmitReviewResult();
+
+  // Track which drill checkpoints have been completed (by drill id)
+  const [completedDrillIds, setCompletedDrillIds] = useState<Set<number>>(new Set());
 
   // Get the lesson from taxonomy (use first lesson if no ID provided)
   const lesson = useMemo(() => {
@@ -71,7 +73,61 @@ export function DailyLessonScreen() {
     return taxonomy.drills.filter((d: any) => drillIds.includes(d.id));
   }, [taxonomy, lessonSteps]);
 
-  const drill = drills[0]; // Get first drill
+  // ── Checkpoint drill logic ──
+  // Drills that have a verification_type set are "checkpoints" — the lesson
+  // progress is gated on completing them.
+  const checkpointDrills = useMemo(
+    () => drills.filter((d: any) => d.verification_type && d.verification_type !== 'none'),
+    [drills]
+  );
+
+  const totalCheckpoints = checkpointDrills.length;
+  const completedCheckpoints = checkpointDrills.filter((d: any) =>
+    completedDrillIds.has(d.id)
+  ).length;
+
+  // Progress: if there are checkpoints, base it on them; otherwise stay at 0
+  // until the user taps Mark Complete.
+  const progress =
+    totalCheckpoints > 0
+      ? Math.round((completedCheckpoints / totalCheckpoints) * 100)
+      : 0;
+
+  // Lesson is completable when all checkpoints are done (or there are none)
+  const canComplete = totalCheckpoints === 0 || completedCheckpoints >= totalCheckpoints;
+
+  // When returning from DrillCoach, check if a drill was just completed
+  useFocusEffect(
+    useCallback(() => {
+      // no-op on focus, completion is tracked via navigation param below
+    }, [])
+  );
+
+  const drill = drills[0]; // Get first drill for the legacy card
+
+  const handleDrillStart = (targetDrill: any) => {
+    const hasVerification =
+      targetDrill.verification_type && targetDrill.verification_type !== 'none';
+    if (hasVerification) {
+      navigation.navigate('DrillCoach', {
+        drillId: targetDrill.id,
+        fromSmartReview: false,
+      });
+      // Mark checkpoint complete optimistically when the user returns
+      // We use a focus listener to check if DrillCoach pushed a completion
+      // For now mark complete when they come back (they can't skip DrillCoach)
+      const unsub = navigation.addListener('focus', () => {
+        setCompletedDrillIds((prev) => new Set([...prev, targetDrill.id]));
+        unsub();
+      });
+    } else {
+      navigation.navigate('DrillDetails', {
+        drillId: targetDrill.id,
+        fromSmartReview,
+        reviewItem,
+      });
+    }
+  };
 
   const lessonData = {
     day: 12, // This would come from user progress
@@ -85,10 +141,18 @@ export function DailyLessonScreen() {
   };
 
   const handleComplete = async () => {
+    if (!canComplete) {
+      Alert.alert(
+        'Complete the drill first',
+        `Finish the practice drill${totalCheckpoints > 1 ? 's' : ''} to mark this lesson complete.`
+      );
+      return;
+    }
+
     // If from Smart Review, submit the completion
     if (fromSmartReview && reviewItem) {
       // Calculate score based on progress (0-1 scale)
-      const score = progress / 100;
+      const score = Math.max(0.5, progress / 100);
 
       // Use lesson duration if available
       const durationMin = lesson?.duration_min || 10;
@@ -127,7 +191,7 @@ export function DailyLessonScreen() {
     } else {
       // Completed from Home daily plan: submit so backend seeds user_review_item and can advance curriculum
       if (lesson?.id != null) {
-        const score = progress / 100;
+        const score = Math.max(0.5, progress / 100);
         const durationMin = lesson.duration_min ?? 10;
         try {
           const result = await submitReview({
@@ -246,27 +310,45 @@ export function DailyLessonScreen() {
         </View>
 
         {/* Practice Drill Section */}
-        {drill && (
-          <View style={[styles.section, styles.drillSection]}>
-            <Text style={styles.sectionTitle}>PRACTICE DRILL</Text>
+        {drills.map((d: any) => {
+          const isCheckpoint = d.verification_type && d.verification_type !== 'none';
+          const isDone = completedDrillIds.has(d.id);
+          return (
+            <View key={d.id} style={[styles.section, styles.drillSection]}>
+              <View style={styles.drillSectionHeader}>
+                <Text style={styles.sectionTitle}>PRACTICE DRILL</Text>
+                {isCheckpoint && (
+                  <View style={[styles.checkpointBadge, isDone && styles.checkpointBadgeDone]}>
+                    <Text style={[styles.checkpointBadgeText, isDone && styles.checkpointBadgeTextDone]}>
+                      {isDone ? '✓ Done' : 'Required'}
+                    </Text>
+                  </View>
+                )}
+              </View>
 
-            <View style={styles.drillCard}>
-              <View style={[styles.drillImage, { backgroundColor: '#1c271f' }]} />
-              <View style={styles.drillContent}>
-                <View style={styles.drillHeader}>
-                  <Text style={styles.drillTitle}>{drill.name}</Text>
+              <View style={styles.drillCard}>
+                <View style={[styles.drillImage, { backgroundColor: '#1c271f' }]} />
+                <View style={styles.drillContent}>
+                  <View style={styles.drillHeader}>
+                    <Text style={styles.drillTitle}>{d.name}</Text>
+                  </View>
+                  <Text style={styles.drillDescription} numberOfLines={2}>
+                    {d.description || d.objective}
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.drillCta, isDone && styles.drillCtaDone]}
+                    onPress={() => handleDrillStart(d)}
+                  >
+                    <Text style={[styles.drillCtaText, isDone && styles.drillCtaTextDone]}>
+                      {isDone ? 'COMPLETED' : isCheckpoint ? 'START DRILL' : 'VIEW STEPS'}
+                    </Text>
+                    {!isDone && <Text style={styles.drillCtaIcon}>→</Text>}
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.drillDescription} numberOfLines={2}>
-                  {drill.description || drill.objective}
-                </Text>
-                <TouchableOpacity style={styles.drillCta}>
-                  <Text style={styles.drillCtaText}>VIEW STEPS</Text>
-                  <Text style={styles.drillCtaIcon}>→</Text>
-                </TouchableOpacity>
               </View>
             </View>
-          </View>
-        )}
+          );
+        })}
 
         {/* Swing Visualizer Widget */}
         <View style={[styles.section, styles.visualizerSection]}>
@@ -313,16 +395,22 @@ export function DailyLessonScreen() {
             size="large"
             fullWidth
             onPress={handleComplete}
-            disabled={submitting}
+            disabled={submitting || !canComplete}
           >
             <View style={styles.completeBtnContent}>
               <Text style={styles.completeBtnIcon}>✓</Text>
               <Text style={styles.completeBtnText}>
-                {submitting ? 'SUBMITTING...' : 'MARK COMPLETE'}
+                {submitting
+                  ? 'SUBMITTING...'
+                  : !canComplete
+                  ? `DRILL ${completedCheckpoints}/${totalCheckpoints}`
+                  : 'MARK COMPLETE'}
               </Text>
-              <View style={styles.xpBadge}>
-                <Text style={styles.xpBadgeText}>+{lessonData.xpReward} XP</Text>
-              </View>
+              {canComplete && (
+                <View style={styles.xpBadge}>
+                  <Text style={styles.xpBadgeText}>+{lessonData.xpReward} XP</Text>
+                </View>
+              )}
             </View>
           </Button>
         </View>
@@ -540,6 +628,39 @@ const styles = StyleSheet.create({
   drillSection: {
     marginTop: 16,
     paddingHorizontal: 16,
+  },
+  drillSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  checkpointBadge: {
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(239,68,68,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.4)',
+  },
+  checkpointBadgeDone: {
+    backgroundColor: 'rgba(19,236,91,0.15)',
+    borderColor: 'rgba(19,236,91,0.4)',
+  },
+  checkpointBadgeText: {
+    color: '#ef4444',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  checkpointBadgeTextDone: {
+    color: colors.primary,
+  },
+  drillCtaDone: {
+    opacity: 0.6,
+  },
+  drillCtaTextDone: {
+    color: colors.primary,
   },
   drillCard: {
     backgroundColor: '#1c271f',

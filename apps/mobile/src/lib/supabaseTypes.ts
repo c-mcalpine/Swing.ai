@@ -84,6 +84,8 @@ export interface Database {
           equipment: string | null
           xp_reward: number | null
           is_beginner_friendly: boolean | null
+          verification_type: 'none' | 'reps' | 'hold' | 'timer'
+          verification_config: Json | null
         }
         Insert: {
           slug: string
@@ -97,6 +99,8 @@ export interface Database {
           equipment?: string | null
           xp_reward?: number | null
           is_beginner_friendly?: boolean | null
+          verification_type?: 'none' | 'reps' | 'hold' | 'timer'
+          verification_config?: Json | null
         }
         Update: {
           slug?: string
@@ -110,6 +114,52 @@ export interface Database {
           equipment?: string | null
           xp_reward?: number | null
           is_beginner_friendly?: boolean | null
+          verification_type?: 'none' | 'reps' | 'hold' | 'timer'
+          verification_config?: Json | null
+        }
+        Relationships: []
+      }
+      drill_coach_session: {
+        Row: {
+          id: number
+          user_id: string
+          drill_id: number
+          started_at: string
+          finished_at: string | null
+          duration_sec: number | null
+          reps_attempted: number | null
+          reps_valid: number | null
+          avg_quality: number | null
+          hold_ms: number | null
+          verification_type: string
+          telemetry: Json | null
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          drill_id: number
+          started_at?: string
+          finished_at?: string | null
+          duration_sec?: number | null
+          reps_attempted?: number | null
+          reps_valid?: number | null
+          avg_quality?: number | null
+          hold_ms?: number | null
+          verification_type: string
+          telemetry?: Json | null
+        }
+        Update: {
+          user_id?: string
+          drill_id?: number
+          started_at?: string
+          finished_at?: string | null
+          duration_sec?: number | null
+          reps_attempted?: number | null
+          reps_valid?: number | null
+          avg_quality?: number | null
+          hold_ms?: number | null
+          verification_type?: string
+          telemetry?: Json | null
         }
         Relationships: []
       }

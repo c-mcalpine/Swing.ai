@@ -18,6 +18,7 @@ import { InitialSwingSetupScreen } from '@/screens/InitialSwingSetupScreen';
 import { SwingRecordingScreen } from '@/screens/SwingRecordingScreen';
 import { SwingPhaseReviewScreen } from '@/screens/SwingPhaseReviewScreen';
 import { SwingDiagnosticViewScreen } from '@/screens/SwingDiagnosticViewScreen';
+import { DrillCoachScreen } from '@/screens/DrillCoachScreen';
 
 /**
  * App Stack - Main navigation for authenticated users
@@ -39,6 +40,11 @@ export type AppStackParamList = {
   SwingRecording: { club?: string }; // Optional club parameter
   SwingPhaseReview: { videoUri: string; club?: string };
   SwingDiagnosticView: { diagnosticId?: number };
+  DrillCoach: {
+    drillId: number;
+    fromSmartReview?: boolean;
+    reviewItem?: { item_type: 'drill' | 'lesson'; item_id: number; issue_slug?: string | null; [key: string]: unknown };
+  };
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -204,6 +210,14 @@ export function AppStack() {
         options={{ 
           headerShown: false,
           animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="DrillCoach"
+        component={DrillCoachScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_bottom',
         }}
       />
     </Stack.Navigator>

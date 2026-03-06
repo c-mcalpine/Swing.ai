@@ -155,9 +155,15 @@ export function DrillDetailsScreen() {
     }
   };
 
-  const handleRecordSwing = () => {
-    // @ts-ignore
-    navigation.navigate('Capture');
+  const hasVerification =
+    !!drill && drill.verification_type && drill.verification_type !== 'none';
+
+  const handleStartDrill = () => {
+    navigation.navigate('DrillCoach', {
+      drillId: drillId!,
+      fromSmartReview,
+      reviewItem,
+    });
   };
 
   const progressPercentage = (reps / goalReps) * 100;
@@ -343,69 +349,73 @@ export function DrillDetailsScreen() {
         <View style={styles.footerGradient} />
         <View style={styles.footer}>
           <View style={styles.footerContent}>
-            {/* Progress Header */}
-            <View style={styles.progressSection}>
-              <View style={styles.goal}>
-                <Text style={styles.goalLabel}>GOAL</Text>
-                <Text style={styles.goalValue}>{goalReps} Reps</Text>
-              </View>
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    { width: `${progressPercentage}%` },
-                  ]}
-                />
-              </View>
-            </View>
+            {hasVerification ? (
+              /* ── Verified drill: single "Start Drill" CTA ── */
+              <Button
+                variant="primary"
+                size="large"
+                fullWidth
+                onPress={handleStartDrill}
+                icon="▶"
+                iconPosition="left"
+              >
+                Start Drill
+              </Button>
+            ) : (
+              /* ── Fallback: manual rep counter ── */
+              <>
+                {/* Progress Header */}
+                <View style={styles.progressSection}>
+                  <View style={styles.goal}>
+                    <Text style={styles.goalLabel}>GOAL</Text>
+                    <Text style={styles.goalValue}>{goalReps} Reps</Text>
+                  </View>
+                  <View style={styles.progressBarContainer}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        { width: `${progressPercentage}%` },
+                      ]}
+                    />
+                  </View>
+                </View>
 
-            {/* Controls Grid */}
-            <View style={styles.controls}>
-              {/* Rep Counter */}
-              <View style={styles.counter}>
-                <TouchableOpacity
-                  style={[styles.counterBtn, styles.counterBtnMinus]}
-                  onPress={decrementReps}
-                  disabled={reps === 0}
-                >
-                  <Text style={styles.counterBtnText}>−</Text>
-                </TouchableOpacity>
-                <Text style={styles.counterValue}>{reps}</Text>
-                <TouchableOpacity
-                  style={[styles.counterBtn, styles.counterBtnPlus]}
-                  onPress={incrementReps}
-                  disabled={reps === goalReps}
-                >
-                  <Text style={styles.counterBtnTextPlus}>+</Text>
-                </TouchableOpacity>
-              </View>
+                {/* Controls Grid */}
+                <View style={styles.controls}>
+                  {/* Rep Counter */}
+                  <View style={styles.counter}>
+                    <TouchableOpacity
+                      style={[styles.counterBtn, styles.counterBtnMinus]}
+                      onPress={decrementReps}
+                      disabled={reps === 0}
+                    >
+                      <Text style={styles.counterBtnText}>−</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.counterValue}>{reps}</Text>
+                    <TouchableOpacity
+                      style={[styles.counterBtn, styles.counterBtnPlus]}
+                      onPress={incrementReps}
+                      disabled={reps === goalReps}
+                    >
+                      <Text style={styles.counterBtnTextPlus}>+</Text>
+                    </TouchableOpacity>
+                  </View>
 
-              {/* Action Buttons */}
-              {fromSmartReview ? (
-                <Button
-                  variant="primary"
-                  size="large"
-                  onPress={handleMarkComplete}
-                  icon="✓"
-                  iconPosition="left"
-                  style={styles.recordBtn}
-                  disabled={reps === 0 || submitting}
-                >
-                  {submitting ? 'Submitting...' : 'Mark Complete'}
-                </Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="large"
-                  onPress={handleRecordSwing}
-                  icon="📹"
-                  iconPosition="left"
-                  style={styles.recordBtn}
-                >
-                  Record Swing
-                </Button>
-              )}
-            </View>
+                  {/* Mark Complete */}
+                  <Button
+                    variant="primary"
+                    size="large"
+                    onPress={handleMarkComplete}
+                    icon="✓"
+                    iconPosition="left"
+                    style={styles.recordBtn}
+                    disabled={reps === 0 || submitting}
+                  >
+                    {submitting ? 'Submitting...' : 'Mark Complete'}
+                  </Button>
+                </View>
+              </>
+            )}
           </View>
         </View>
       </View>
