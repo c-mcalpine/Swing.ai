@@ -248,6 +248,8 @@ export interface Database {
           is_course: boolean | null
           tags: string | null
           primary_error_id: number | null
+          verification_type: 'none' | 'reps' | 'hold' | 'timer'
+          verification_config: Json | null
         }
         Insert: {
           slug: string
@@ -260,6 +262,8 @@ export interface Database {
           is_course?: boolean | null
           tags?: string | null
           primary_error_id?: number | null
+          verification_type?: 'none' | 'reps' | 'hold' | 'timer'
+          verification_config?: Json | null
         }
         Update: {
           slug?: string
@@ -272,6 +276,40 @@ export interface Database {
           is_course?: boolean | null
           tags?: string | null
           primary_error_id?: number | null
+          verification_type?: 'none' | 'reps' | 'hold' | 'timer'
+          verification_config?: Json | null
+        }
+        Relationships: []
+      }
+      lesson_coach_session: {
+        Row: {
+          id: number
+          user_id: string
+          lesson_id: number
+          started_at: string
+          finished_at: string | null
+          duration_sec: number | null
+          verification_type: string
+          telemetry: Json | null
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          lesson_id: number
+          started_at?: string
+          finished_at?: string | null
+          duration_sec?: number | null
+          verification_type: string
+          telemetry?: Json | null
+        }
+        Update: {
+          user_id?: string
+          lesson_id?: number
+          started_at?: string
+          finished_at?: string | null
+          duration_sec?: number | null
+          verification_type?: string
+          telemetry?: Json | null
         }
         Relationships: []
       }
@@ -1322,8 +1360,229 @@ export interface Database {
         };
         Relationships: [];
       };
+      curriculum_track: {
+        Row: {
+          id: number;
+          slug: 'foundation' | 'corrective';
+          name: string;
+          description: string | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          slug: 'foundation' | 'corrective';
+          name: string;
+          description?: string | null;
+          sort_order: number;
+          is_active?: boolean;
+        };
+        Update: {
+          slug?: 'foundation' | 'corrective';
+          name?: string;
+          description?: string | null;
+          sort_order?: number;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
+      curriculum_unit: {
+        Row: {
+          id: number;
+          track_id: number;
+          slug: string;
+          title: string;
+          description: string | null;
+          unit_type: 'foundation' | 'corrective';
+          primary_phase_id: number | null;
+          primary_error_id: number | null;
+          difficulty: number | null;
+          estimated_minutes: number | null;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          track_id: number;
+          slug: string;
+          title: string;
+          description?: string | null;
+          unit_type: 'foundation' | 'corrective';
+          primary_phase_id?: number | null;
+          primary_error_id?: number | null;
+          difficulty?: number | null;
+          estimated_minutes?: number | null;
+          sort_order: number;
+          is_active?: boolean;
+        };
+        Update: {
+          track_id?: number;
+          slug?: string;
+          title?: string;
+          description?: string | null;
+          unit_type?: 'foundation' | 'corrective';
+          primary_phase_id?: number | null;
+          primary_error_id?: number | null;
+          difficulty?: number | null;
+          estimated_minutes?: number | null;
+          sort_order?: number;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
+      curriculum_unit_item: {
+        Row: {
+          id: number;
+          unit_id: number;
+          item_order: number;
+          item_type: 'lesson' | 'drill' | 'cue';
+          lesson_id: number | null;
+          drill_id: number | null;
+          cue_id: number | null;
+          is_required: boolean;
+          is_bonus: boolean;
+          unlock_rule: Json | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          unit_id: number;
+          item_order: number;
+          item_type: 'lesson' | 'drill' | 'cue';
+          lesson_id?: number | null;
+          drill_id?: number | null;
+          cue_id?: number | null;
+          is_required?: boolean;
+          is_bonus?: boolean;
+          unlock_rule?: Json | null;
+          notes?: string | null;
+        };
+        Update: {
+          unit_id?: number;
+          item_order?: number;
+          item_type?: 'lesson' | 'drill' | 'cue';
+          lesson_id?: number | null;
+          drill_id?: number | null;
+          cue_id?: number | null;
+          is_required?: boolean;
+          is_bonus?: boolean;
+          unlock_rule?: Json | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      curriculum_unit_mechanic: {
+        Row: {
+          unit_id: number;
+          mechanic_id: number;
+          role: 'primary' | 'secondary' | 'support';
+          weight: number;
+          notes: string | null;
+        };
+        Insert: {
+          unit_id: number;
+          mechanic_id: number;
+          role: 'primary' | 'secondary' | 'support';
+          weight?: number;
+          notes?: string | null;
+        };
+        Update: {
+          unit_id?: number;
+          mechanic_id?: number;
+          role?: 'primary' | 'secondary' | 'support';
+          weight?: number;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      user_curriculum_unit: {
+        Row: {
+          user_id: string;
+          unit_id: number;
+          status: 'queued' | 'active' | 'completed' | 'skipped';
+          priority_score: number | null;
+          assigned_reason: Json | null;
+          started_at: string | null;
+          completed_at: string | null;
+          last_seen_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          unit_id: number;
+          status?: 'queued' | 'active' | 'completed' | 'skipped';
+          priority_score?: number | null;
+          assigned_reason?: Json | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          last_seen_at?: string | null;
+        };
+        Update: {
+          status?: 'queued' | 'active' | 'completed' | 'skipped';
+          priority_score?: number | null;
+          assigned_reason?: Json | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          last_seen_at?: string | null;
+        };
+        Relationships: [];
+      };
+      user_curriculum_unit_item: {
+        Row: {
+          id: number;
+          user_id: string;
+          unit_item_id: number;
+          status: 'not_started' | 'in_progress' | 'completed' | 'skipped';
+          score: number | null;
+          started_at: string | null;
+          completed_at: string | null;
+          last_seen_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          unit_item_id: number;
+          status?: 'not_started' | 'in_progress' | 'completed' | 'skipped';
+          score?: number | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          last_seen_at?: string | null;
+        };
+        Update: {
+          status?: 'not_started' | 'in_progress' | 'completed' | 'skipped';
+          score?: number | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          last_seen_at?: string | null;
+        };
+        Relationships: [];
+      };
     }
     Views: {
+      curriculum_unit_item_resolved: {
+        Row: {
+          id: number;
+          unit_id: number;
+          item_order: number;
+          item_type: 'lesson' | 'drill' | 'cue';
+          is_required: boolean;
+          is_bonus: boolean;
+          unlock_rule: Json | null;
+          notes: string | null;
+          resolved_lesson_id: number | null;
+          resolved_drill_id: number | null;
+          resolved_cue_id: number | null;
+          content_slug: string | null;
+          content_title: string | null;
+        };
+        Insert: never;
+        Update: never;
+      };
       weekly_xp_leaderboard: {
         Row: {
           user_id: string;

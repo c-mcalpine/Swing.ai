@@ -89,6 +89,67 @@ CREATE TABLE public.cue_error (
   CONSTRAINT cue_error_cue_id_fkey FOREIGN KEY (cue_id) REFERENCES public.coaching_cue(id),
   CONSTRAINT cue_error_error_id_fkey FOREIGN KEY (error_id) REFERENCES public.swing_error(id)
 );
+CREATE TABLE public.curriculum_track (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  slug text NOT NULL UNIQUE CHECK (slug = ANY (ARRAY['foundation'::text, 'corrective'::text])),
+  name text NOT NULL,
+  description text,
+  sort_order integer NOT NULL,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT curriculum_track_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.curriculum_unit (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  track_id bigint NOT NULL,
+  slug text NOT NULL UNIQUE,
+  title text NOT NULL,
+  description text,
+  unit_type text NOT NULL CHECK (unit_type = ANY (ARRAY['foundation'::text, 'corrective'::text])),
+  primary_phase_id bigint,
+  primary_error_id bigint,
+  difficulty smallint,
+  estimated_minutes integer,
+  sort_order integer NOT NULL,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT curriculum_unit_pkey PRIMARY KEY (id),
+  CONSTRAINT curriculum_unit_track_id_fkey FOREIGN KEY (track_id) REFERENCES public.curriculum_track(id),
+  CONSTRAINT curriculum_unit_primary_phase_id_fkey FOREIGN KEY (primary_phase_id) REFERENCES public.swing_phase(id),
+  CONSTRAINT curriculum_unit_primary_error_id_fkey FOREIGN KEY (primary_error_id) REFERENCES public.swing_error(id)
+);
+CREATE TABLE public.curriculum_unit_item (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  unit_id bigint NOT NULL,
+  item_order integer NOT NULL,
+  item_type text NOT NULL CHECK (item_type = ANY (ARRAY['lesson'::text, 'drill'::text, 'cue'::text])),
+  lesson_id bigint,
+  drill_id bigint,
+  cue_id bigint,
+  is_required boolean NOT NULL DEFAULT true,
+  is_bonus boolean NOT NULL DEFAULT false,
+  unlock_rule jsonb,
+  notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT curriculum_unit_item_pkey PRIMARY KEY (id),
+  CONSTRAINT curriculum_unit_item_unit_id_fkey FOREIGN KEY (unit_id) REFERENCES public.curriculum_unit(id),
+  CONSTRAINT curriculum_unit_item_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.lesson(id),
+  CONSTRAINT curriculum_unit_item_drill_id_fkey FOREIGN KEY (drill_id) REFERENCES public.drill(id),
+  CONSTRAINT curriculum_unit_item_cue_id_fkey FOREIGN KEY (cue_id) REFERENCES public.coaching_cue(id)
+);
+CREATE TABLE public.curriculum_unit_mechanic (
+  unit_id bigint NOT NULL,
+  mechanic_id bigint NOT NULL,
+  role text NOT NULL CHECK (role = ANY (ARRAY['primary'::text, 'secondary'::text, 'support'::text])),
+  weight numeric NOT NULL DEFAULT 1.0,
+  notes text,
+  CONSTRAINT curriculum_unit_mechanic_pkey PRIMARY KEY (unit_id, mechanic_id),
+  CONSTRAINT curriculum_unit_mechanic_unit_id_fkey FOREIGN KEY (unit_id) REFERENCES public.curriculum_unit(id),
+  CONSTRAINT curriculum_unit_mechanic_mechanic_id_fkey FOREIGN KEY (mechanic_id) REFERENCES public.swing_mechanic(id)
+);
 CREATE TABLE public.drill (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   slug text NOT NULL UNIQUE,
@@ -177,6 +238,9 @@ CREATE TABLE public.lesson (
   is_course boolean DEFAULT false,
   tags text,
   primary_error_id bigint,
+  unit smallint,
+  verification_type text NOT NULL DEFAULT 'timer'::text CHECK (verification_type IN ('none','reps','hold','timer')),
+  verification_config jsonb,
   CONSTRAINT lesson_pkey PRIMARY KEY (id),
   CONSTRAINT lesson_primary_phase_id_fkey FOREIGN KEY (primary_phase_id) REFERENCES public.swing_phase(id),
   CONSTRAINT lesson_primary_error_id_fkey FOREIGN KEY (primary_error_id) REFERENCES public.swing_error(id)
@@ -197,6 +261,18 @@ CREATE TABLE public.lesson_step (
   CONSTRAINT lesson_step_drill_id_fkey FOREIGN KEY (drill_id) REFERENCES public.drill(id),
   CONSTRAINT lesson_step_mechanic_id_fkey FOREIGN KEY (mechanic_id) REFERENCES public.swing_mechanic(id),
   CONSTRAINT lesson_step_error_id_fkey FOREIGN KEY (error_id) REFERENCES public.swing_error(id)
+);
+CREATE TABLE public.lesson_coach_session (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  lesson_id bigint NOT NULL REFERENCES public.lesson(id) ON DELETE CASCADE,
+  started_at timestamptz NOT NULL DEFAULT now(),
+  finished_at timestamptz,
+  duration_sec integer,
+  verification_type text NOT NULL DEFAULT 'timer',
+  telemetry jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT lesson_coach_session_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.mechanic_key_point (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -439,6 +515,36 @@ CREATE TABLE public.user_curriculum_queue (
   CONSTRAINT user_curriculum_queue_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT user_curriculum_queue_lesson_id_fkey FOREIGN KEY (lesson_id) REFERENCES public.lesson(id),
   CONSTRAINT user_curriculum_queue_issue_slug_fkey FOREIGN KEY (issue_slug) REFERENCES public.swing_error(slug)
+);
+CREATE TABLE public.user_curriculum_unit (
+  user_id uuid NOT NULL,
+  unit_id bigint NOT NULL,
+  status text NOT NULL DEFAULT 'queued'::text CHECK (status = ANY (ARRAY['queued'::text, 'active'::text, 'completed'::text, 'skipped'::text])),
+  priority_score numeric,
+  assigned_reason jsonb,
+  started_at timestamp with time zone,
+  completed_at timestamp with time zone,
+  last_seen_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_curriculum_unit_pkey PRIMARY KEY (user_id, unit_id),
+  CONSTRAINT user_curriculum_unit_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT user_curriculum_unit_unit_id_fkey FOREIGN KEY (unit_id) REFERENCES public.curriculum_unit(id)
+);
+CREATE TABLE public.user_curriculum_unit_item (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  unit_item_id bigint NOT NULL,
+  status text NOT NULL DEFAULT 'not_started'::text CHECK (status = ANY (ARRAY['not_started'::text, 'in_progress'::text, 'completed'::text, 'skipped'::text])),
+  score numeric,
+  started_at timestamp with time zone,
+  completed_at timestamp with time zone,
+  last_seen_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_curriculum_unit_item_pkey PRIMARY KEY (id),
+  CONSTRAINT user_curriculum_unit_item_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT user_curriculum_unit_item_unit_item_id_fkey FOREIGN KEY (unit_item_id) REFERENCES public.curriculum_unit_item(id)
 );
 CREATE TABLE public.user_daily_xp_activity (
   user_id uuid NOT NULL,

@@ -11,6 +11,9 @@ import { AnalysisHistoryScreen } from '@/screens/AnalysisHistoryScreen';
 import { ReviewScreen } from '@/screens/ReviewScreen';
 import { ChallengeLeaderboardScreen } from '@/screens/ChallengeLeaderboardScreen';
 import { PersonalizedPlanScreen } from '@/screens/PersonalizedPlanScreen';
+import { MyPlanScreen } from '@/screens/MyPlanScreen';
+import { UnitDetailScreen } from '@/screens/UnitDetailScreen';
+import { CueDetailScreen } from '@/screens/CueDetailScreen';
 import { DailyLessonScreen } from '@/screens/DailyLessonScreen';
 import { QuickDrillsScreen } from '@/screens/QuickDrillsScreen';
 import { DrillDetailsScreen } from '@/screens/DrillDetailsScreen';
@@ -33,6 +36,9 @@ export type AppStackParamList = {
   Review: undefined;
   ChallengeLeaderboard: undefined;
   PersonalizedPlan: undefined;
+  MyPlan: undefined;
+  UnitDetail: { unitId: number };
+  CueDetail: { cueId: number };
   DailyLesson: { lessonId?: number; fromSmartReview?: boolean; reviewItem?: { item_type: 'drill' | 'lesson'; item_id: number; issue_slug?: string | null; [key: string]: unknown } };
   QuickDrills: undefined;
   DrillDetails: { drillId: number; fromSmartReview?: boolean; reviewItem?: { item_type: 'drill' | 'lesson'; item_id: number; issue_slug?: string | null; [key: string]: unknown } };
@@ -41,7 +47,8 @@ export type AppStackParamList = {
   SwingPhaseReview: { videoUri: string; club?: string };
   SwingDiagnosticView: { diagnosticId?: number };
   DrillCoach: {
-    drillId: number;
+    drillId?: number;
+    lessonId?: number;
     fromSmartReview?: boolean;
     reviewItem?: { item_type: 'drill' | 'lesson'; item_id: number; issue_slug?: string | null; [key: string]: unknown };
   };
@@ -154,6 +161,30 @@ export function AppStack() {
         options={{ 
           headerShown: false,
           animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="MyPlan"
+        component={MyPlanScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="UnitDetail"
+        component={UnitDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="CueDetail"
+        component={CueDetailScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_bottom',
         }}
       />
       <Stack.Screen 

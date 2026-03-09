@@ -273,13 +273,26 @@ Deno.serve(async (req) => {
     // 11) Done
     await supabase.from("swing_capture").update({ status: "analyzed" }).eq("id", capture_id);
 
-    // 12) Build curriculum queue from issue_scores (feeds daily-plan)
+    // 12) [DEPRECATED fallback] Populate legacy lesson queue so daily-plan can still serve
+    //     users who have no unit assignments yet (pre-migration swings).
+    //     Remove once all active users have been migrated to the unit-based plan.
     const { error: planErr } = await supabase.rpc("build_curriculum_queue", {
       p_capture_id: capture_id,
     });
     if (planErr) {
       console.error("[swing-analysis] build_curriculum_queue failed:", planErr);
       // Do NOT fail the whole request; analysis is still valuable
+    }
+
+    // 12b) Populate unit-based plan — authoritative source for MyPlanScreen and daily-plan.
+    //      Assigns corrective curriculum_units (via swing_error -> curriculum_unit.primary_error_id)
+    //      and all foundation units. Writes user_curriculum_unit + user_curriculum_unit_item.
+    const { error: unitPlanErr } = await supabase.rpc("build_user_curriculum", {
+      p_capture_id: capture_id,
+    });
+    if (unitPlanErr) {
+      console.error("[swing-analysis] build_user_curriculum failed:", unitPlanErr);
+      // Do NOT fail the whole request
     }
 
     // 13) Swing DNA: compute raw 6 dimensions + overall from mechanic_scores + pose_summary, then update profile (history-aware)

@@ -2,13 +2,14 @@
  * DrillCoachScreen
  *
  * Live camera view with on-device pose verification.
- * Shows a rep counter (reps mode), hold timer (hold mode), or countdown (timer mode).
+ * Used for both drills and lessons: camera must be on for the required duration.
  * Fires submitReview() on finish — same pipeline as the existing completion flow.
  *
- * Navigation params:
- *   drillId         — required
- *   fromSmartReview — optional, passed back to submitReview source
- *   reviewItem      — optional, for smart-review submissions
+ * Navigation params (at least one required):
+ *   drillId         — when completing a drill
+ *   lessonId        — when completing a lesson (camera + timer)
+ *   fromSmartReview — optional
+ *   reviewItem      — optional
  */
 
 import React, { useRef, useState, useCallback } from 'react';
@@ -21,14 +22,19 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { CameraRotateIcon, DeviceMobileCameraIcon } from 'phosphor-react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDrill } from '@/hooks/useDrill';
+import { useLesson } from '@/hooks/useLesson';
 import { useDrillCoach } from '@/features/drillCoach/useDrillCoach';
 import { useSubmitReviewResult } from '@/hooks/useSmartReview';
+import { useAuth } from '@/lib/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { colors } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
+import type { Database } from '@/lib/supabaseTypes';
 
 type DrillCoachScreenNavigationProp = NativeStackNavigationProp<
   AppStackParamList,
@@ -142,62 +148,91 @@ export function DrillCoachScreen() {
   const navigation = useNavigation<DrillCoachScreenNavigationProp>();
   const route = useRoute<DrillCoachScreenRouteProp>();
 
-  const drillId = (route.params as any)?.drillId as number;
+  type LessonCoachSessionInsert = Database['public']['Tables']['lesson_coach_session']['Insert'];
+
+  const drillId = (route.params as any)?.drillId as number | undefined;
+  const lessonId = (route.params as any)?.lessonId as number | undefined;
   const fromSmartReview = (route.params as any)?.fromSmartReview as boolean | undefined;
   const reviewItem = (route.params as any)?.reviewItem;
 
+  const isLessonMode = !!lessonId && !drillId;
+  const isDrillMode = !!drillId && !lessonId;
+
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
+  const [facing, setFacing] = useState<CameraType>('back');
+  const [started, setStarted] = useState(false);
 
-  const { drill, loading: drillLoading } = useDrill(drillId);
-  const { state, saving, saveSession } = useDrillCoach(drill ?? null, cameraRef as any);
+  const { userId } = useAuth();
+  const { drill, loading: drillLoading } = useDrill(drillId ?? 0);
+  const { lesson, loading: lessonLoading } = useLesson(lessonId ?? 0);
+
+  // Build a synthetic drill row so useDrillCoach can run timer mode for a lesson
+  const syntheticDrill = React.useMemo((): Database['public']['Tables']['drill']['Row'] | null => {
+    if (!isLessonMode || !lesson) return null;
+    const minMs = (lesson.duration_min ?? 3) * 60 * 1000;
+    return {
+      id: 0,
+      verification_type: (lesson.verification_type ?? 'timer') as 'none' | 'reps' | 'hold' | 'timer',
+      verification_config: lesson.verification_config ?? {
+        timer: { min_duration_ms: minMs },
+        min_confidence: 0.4,
+      },
+    } as Database['public']['Tables']['drill']['Row'];
+  }, [isLessonMode, lesson]);
+
+  const activeDrill = isDrillMode ? (drill ?? null) : isLessonMode ? syntheticDrill : null;
+
+  // Only pass the drill to useDrillCoach once the user has tapped Start,
+  // so the timer and pose tracking don't run until the user is positioned.
+  const { state, saving, saveSession } = useDrillCoach(started ? activeDrill : null, cameraRef as any);
   const { submit: submitReview, loading: submitting } = useSubmitReviewResult();
   const [finishing, setFinishing] = useState(false);
 
-  // ── Permission gate ──
-  if (!permission) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
-  }
+  // ── ALL hooks must be declared before any early returns ──
 
-  if (!permission.granted) {
-    return (
-      <SafeAreaView style={styles.center}>
-        <Text style={styles.permText}>Camera access is required to verify your drill.</Text>
-        <TouchableOpacity style={styles.permBtn} onPress={requestPermission}>
-          <Text style={styles.permBtnText}>Grant Access</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
+  const saveLessonSession = useCallback(async (): Promise<void> => {
+    if (!userId || !lessonId || !lesson) return;
+    const durationSec = Math.round(state.elapsedMs / 1000);
+    const finishedAt = new Date();
+    const startedAt = new Date(finishedAt.getTime() - state.elapsedMs);
+    await supabase.from('lesson_coach_session').insert({
+      user_id: userId,
+      lesson_id: lessonId,
+      started_at: startedAt.toISOString(),
+      finished_at: finishedAt.toISOString(),
+      duration_sec: durationSec,
+      verification_type: lesson.verification_type ?? 'timer',
+      telemetry: null,
+    } as any);
+  }, [userId, lessonId, lesson, state.elapsedMs]);
 
-  // ── Drill loading ──
-  if (drillLoading || !drill) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
-    );
-  }
-
-  // ── Cue from drill tips (first sentence) ──
-  const cue = drill.tips
-    ? drill.tips.split(/[.!?]/)[0].trim()
-    : drill.objective ?? drill.name;
-
-  // ── Finish handler ──
   const handleFinish = useCallback(async () => {
     if (finishing || submitting || saving) return;
     setFinishing(true);
 
     try {
-      // 1. Save session telemetry to DB
-      await saveSession();
+      if (isLessonMode) {
+        await saveLessonSession();
+        const durationMin = Math.max(1, Math.round(state.elapsedMs / 60000));
+        const result = await submitReview({
+          item_type: 'lesson',
+          item_id: lessonId!,
+          score: 1,
+          issue_slug: reviewItem?.issue_slug ?? null,
+          duration_min: durationMin,
+          source: fromSmartReview ? 'review' : 'daily',
+        });
+        Alert.alert(
+          'Lesson Complete!',
+          `${formatElapsed(state.elapsedMs)} completed${result?.xp_awarded ? `\n+${result.xp_awarded} XP` : ''}`,
+          [{ text: 'Continue', onPress: () => navigation.goBack() }]
+        );
+        return;
+      }
 
-      // 2. Compute score (0–1)
+      // Drill mode
+      await saveSession();
       let score = 0;
       if (state.mode === 'reps') {
         score = state.minValidReps > 0
@@ -213,17 +248,15 @@ export function DrillCoachScreen() {
 
       const durationMin = Math.max(1, Math.round(state.elapsedMs / 60000));
 
-      // 3. Submit to review pipeline
       const result = await submitReview({
         item_type: 'drill',
-        item_id: drillId,
+        item_id: drillId!,
         score,
         issue_slug: reviewItem?.issue_slug ?? null,
         duration_min: durationMin,
         source: fromSmartReview ? 'review' : 'daily',
       });
 
-      // 4. Success summary
       const repsSummary =
         state.mode === 'reps'
           ? `${state.repsValid}/${state.repsAttempted} reps verified`
@@ -237,31 +270,91 @@ export function DrillCoachScreen() {
         [{ text: 'Continue', onPress: () => navigation.goBack() }]
       );
     } catch (err: any) {
-      Alert.alert('Error', err?.message ?? 'Failed to save drill. Please try again.');
+      Alert.alert('Error', err?.message ?? `Failed to save ${isLessonMode ? 'lesson' : 'drill'}. Please try again.`);
     } finally {
       setFinishing(false);
     }
   }, [
-    finishing, submitting, saving, saveSession, submitReview,
-    state, drillId, fromSmartReview, reviewItem, navigation,
+    finishing, submitting, saving, saveSession, saveLessonSession, submitReview,
+    state, drillId, lessonId, isLessonMode, fromSmartReview, reviewItem, navigation,
   ]);
+
+  // ── Early returns (all hooks above this line) ──
+
+  // ── No subject ──
+  if (!isLessonMode && !isDrillMode) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <Text style={styles.permText}>No lesson or drill selected.</Text>
+        <TouchableOpacity style={styles.permBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.permBtnText}>Go back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Permission gate ──
+  if (!permission) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <Text style={styles.permText}>
+          Camera access is required to verify your {isLessonMode ? 'lesson' : 'drill'}.
+        </Text>
+        <TouchableOpacity style={styles.permBtn} onPress={requestPermission}>
+          <Text style={styles.permBtnText}>Grant Access</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Loading ──
+  if (isDrillMode && (drillLoading || !drill)) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+  if (isLessonMode && (lessonLoading || !lesson)) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+
+  const displayName = isLessonMode ? (lesson!.title ?? 'Lesson') : drill!.name;
+  const cue = isLessonMode
+    ? (lesson!.summary ? lesson!.summary.split(/[.!?]/)[0].trim() : lesson!.title ?? '')
+    : (drill!.tips ? drill!.tips.split(/[.!?]/)[0].trim() : drill!.objective ?? drill!.name);
 
   // ── Finish enabled? ──
   const canFinish = state.isComplete || (state.mode === 'none');
 
   // ── Main counter / timer display ──
   const counterDisplay = () => {
+    if (!started) {
+      return (
+        <View style={styles.counterBlock}>
+          <Text style={styles.alignText}>POSITION YOURSELF</Text>
+        </View>
+      );
+    }
     if (state.mode === 'reps') {
       return (
         <View style={styles.counterBlock}>
           <Text style={styles.counterBig}>{state.repsValid}</Text>
-          <Text style={styles.counterSub}>
-            / {state.minValidReps} verified reps
-          </Text>
+          <Text style={styles.counterSub}>/ {state.minValidReps} verified reps</Text>
           {state.repsAttempted > state.repsValid && (
-            <Text style={styles.counterAttempted}>
-              {state.repsAttempted} total attempted
-            </Text>
+            <Text style={styles.counterAttempted}>{state.repsAttempted} total attempted</Text>
           )}
         </View>
       );
@@ -273,10 +366,7 @@ export function DrillCoachScreen() {
           <Text style={[styles.counterBig, state.isHolding && styles.counterBigActive]}>
             {formatHoldTime(state.holdMs)}
           </Text>
-          <Text style={styles.counterSub}>
-            hold {formatHoldTime(state.minHoldMs)} target
-          </Text>
-          {/* Circular progress ring replaced with simple arc text for simplicity */}
+          <Text style={styles.counterSub}>hold {formatHoldTime(state.minHoldMs)} target</Text>
           <View style={styles.holdBar}>
             <View style={[styles.holdFill, { width: `${pct}%` as any }]} />
           </View>
@@ -291,7 +381,6 @@ export function DrillCoachScreen() {
         </View>
       );
     }
-    // none mode — show manual rep counter (same as DrillDetailsScreen fallback)
     return (
       <View style={styles.counterBlock}>
         <Text style={styles.counterBig}>{state.elapsedMs > 0 ? formatElapsed(state.elapsedMs) : '—'}</Text>
@@ -300,8 +389,8 @@ export function DrillCoachScreen() {
     );
   };
 
-  // ── Initializing overlay ──
-  const initOverlay = !state.ready && state.mode !== 'none' && (
+  // ── Initializing overlay (only shown after started) ──
+  const initOverlay = started && !state.ready && state.mode !== 'none' && (
     <View style={styles.initOverlay}>
       <ActivityIndicator color={colors.primary} size="large" />
       <Text style={styles.initText}>Initializing pose tracking…</Text>
@@ -314,13 +403,11 @@ export function DrillCoachScreen() {
       <CameraView
         ref={cameraRef}
         style={StyleSheet.absoluteFill}
-        facing="back"
+        facing={facing}
       />
 
-      {/* Dark gradient scrim at top */}
+      {/* Scrims */}
       <View style={styles.topScrim} />
-
-      {/* Dark gradient scrim at bottom */}
       <View style={styles.bottomScrim} />
 
       {/* Init overlay */}
@@ -338,85 +425,127 @@ export function DrillCoachScreen() {
           </TouchableOpacity>
 
           <Text style={styles.drillTitle} numberOfLines={1}>
-            {drill.name}
+            {displayName}
           </Text>
 
-          <View style={styles.elapsedBadge}>
-            <Text style={styles.elapsedText}>{formatElapsed(state.elapsedMs)}</Text>
-          </View>
+          {started ? (
+            <View style={styles.elapsedBadge}>
+              <Text style={styles.elapsedText}>{formatElapsed(state.elapsedMs)}</Text>
+            </View>
+          ) : (
+            <View style={{ width: 60 }} />
+          )}
         </View>
 
-        {/* Coaching cue */}
-        {!!cue && (
+        {/* Setup instruction pill (before start) */}
+        {!started && (
+          <View style={styles.instructions}>
+            <View style={styles.instructionPill}>
+              <DeviceMobileCameraIcon size={16} color={colors.white} weight="regular" />
+              <Text style={styles.instructionText}>
+                {isLessonMode ? 'Position yourself, then tap Start' : 'Set up your camera, then tap Start'}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Coaching cue (after start) */}
+        {started && !!cue && (
           <View style={styles.cueCard}>
             <Text style={styles.cueLabel}>CUE</Text>
             <Text style={styles.cueText} numberOfLines={2}>{cue}</Text>
           </View>
         )}
 
-        {/* Tracking badge */}
-        <View style={styles.trackingRow}>
-          <TrackingBadge health={state.trackingHealth} />
-          {state.fps > 0 && (
-            <Text style={styles.fps}>{state.fps.toFixed(1)} fps</Text>
-          )}
-        </View>
+        {/* Tracking badge (after start) */}
+        {started && (
+          <View style={styles.trackingRow}>
+            <TrackingBadge health={state.trackingHealth} />
+            {state.fps > 0 && (
+              <Text style={styles.fps}>{state.fps.toFixed(1)} fps</Text>
+            )}
+          </View>
+        )}
       </SafeAreaView>
 
-      {/* ── Centre counter ── */}
+      {/* ── Centre counter / prompt ── */}
       <View style={styles.counterArea} pointerEvents="none">
         {counterDisplay()}
       </View>
 
       {/* ── Bottom panel ── */}
       <SafeAreaView style={styles.bottomPanel}>
-        {/* Quality bar (only when verification active) */}
-        {state.mode !== 'none' && state.avgQuality > 0 && (
+        {/* Quality bar (only when active and verification running) */}
+        {started && state.mode !== 'none' && state.avgQuality > 0 && (
           <View style={styles.qualityRow}>
             <QualityBar quality={state.avgQuality} />
           </View>
         )}
 
-        {/* Finish button */}
-        <TouchableOpacity
-          style={[
-            styles.finishBtn,
-            !canFinish && styles.finishBtnDisabled,
-          ]}
-          onPress={handleFinish}
-          disabled={!canFinish || finishing || submitting || saving}
-          activeOpacity={0.8}
-        >
-          {finishing || submitting || saving ? (
-            <ActivityIndicator color={colors.background} />
+        {/* Camera controls row: [side btn] [main btn] [flip btn] */}
+        <View style={styles.cameraControls}>
+          {/* Left placeholder / exit-early when active */}
+          {started && !canFinish && state.mode !== 'none' ? (
+            <TouchableOpacity
+              style={styles.controlBtn}
+              onPress={() => {
+                Alert.alert(
+                  'Exit early?',
+                  'Your progress will still be saved.',
+                  [
+                    { text: 'Keep going', style: 'cancel' },
+                    { text: 'Exit', style: 'destructive', onPress: () => navigation.goBack() },
+                  ]
+                );
+              }}
+            >
+              <Text style={styles.controlBtnText}>✕</Text>
+            </TouchableOpacity>
           ) : (
-            <Text style={styles.finishBtnText}>
-              {canFinish ? 'Finish Drill' : state.mode === 'reps'
-                ? `${state.repsValid} / ${state.minValidReps} reps`
-                : state.mode === 'hold'
-                ? `Hold ${formatHoldTime(state.minHoldMs - state.holdMs)} more`
-                : 'In Progress…'}
-            </Text>
+            <View style={styles.controlBtnPlaceholder} />
           )}
-        </TouchableOpacity>
 
-        {/* Early exit for verified drills only */}
-        {!canFinish && state.mode !== 'none' && (
+          {/* Main action button */}
+          {!started ? (
+            <TouchableOpacity style={styles.startBtn} onPress={() => setStarted(true)} activeOpacity={0.85}>
+              <View style={styles.startBtnInner} />
+              <Text style={styles.startBtnLabel}>START</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.finishBtn, !canFinish && styles.finishBtnDisabled]}
+              onPress={handleFinish}
+              disabled={!canFinish || finishing || submitting || saving}
+              activeOpacity={0.8}
+            >
+              {finishing || submitting || saving ? (
+                <ActivityIndicator color={colors.background} />
+              ) : (
+                <Text style={styles.finishBtnText}>
+                  {canFinish
+                    ? (isLessonMode ? 'Finish Lesson' : 'Finish Drill')
+                    : state.mode === 'reps'
+                    ? `${state.repsValid} / ${state.minValidReps} reps`
+                    : state.mode === 'hold'
+                    ? `Hold ${formatHoldTime(state.minHoldMs - state.holdMs)} more`
+                    : 'In Progress…'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* Flip camera */}
           <TouchableOpacity
-            style={styles.skipBtn}
-            onPress={() => {
-              Alert.alert(
-                'Exit early?',
-                'Your progress will still be saved.',
-                [
-                  { text: 'Keep going', style: 'cancel' },
-                  { text: 'Exit', style: 'destructive', onPress: () => navigation.goBack() },
-                ]
-              );
-            }}
+            style={styles.controlBtn}
+            onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+            accessibilityLabel="Flip camera"
           >
-            <Text style={styles.skipBtnText}>Exit without finishing</Text>
+            <CameraRotateIcon size={24} color={colors.white} weight="regular" />
           </TouchableOpacity>
+        </View>
+
+        {!started && (
+          <Text style={styles.helperText}>Get in position, then tap Start</Text>
         )}
       </SafeAreaView>
     </View>
@@ -623,15 +752,51 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
 
+  // Instructions pill (setup mode)
+  instructions: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  instructionPill: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  instructionText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+
+  // Align prompt (setup center)
+  alignText: {
+    color: 'rgba(255,255,255,0.8)',
+    letterSpacing: 1.2,
+    fontSize: 24,
+    fontWeight: '700',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+    textAlign: 'center',
+    opacity: 0.7,
+  },
+
   // Bottom panel
   bottomPanel: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+    paddingTop: 16,
+    gap: 16,
     zIndex: 10,
   },
   qualityRow: {
@@ -641,10 +806,75 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 
-  // Finish button
+  // Camera controls row (mirrors SwingRecordingScreen)
+  cameraControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+  },
+  controlBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(28,39,31,0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  controlBtnText: {
+    color: colors.white,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  controlBtnPlaceholder: {
+    width: 48,
+    height: 48,
+  },
+
+  // Start button (big circle like SwingRecordingScreen record button)
+  startBtn: {
+    position: 'relative',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: colors.white,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  startBtnInner: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderRadius: 36,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  startBtnLabel: {
+    position: 'relative',
+    zIndex: 10,
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+
+  // Finish button (wide pill, shown when active)
   finishBtn: {
-    height: 56,
-    borderRadius: 16,
+    flex: 1,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: colors.primary,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -653,19 +883,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 8,
+    marginHorizontal: 8,
   },
   finishBtnDisabled: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.2)',
     shadowOpacity: 0,
     elevation: 0,
   },
   finishBtnText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.background,
   },
 
-  // Skip / exit
+  helperText: {
+    color: '#9db9a6',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+
+  // Skip / exit (kept for potential reuse)
   skipBtn: {
     alignItems: 'center',
     paddingVertical: 6,

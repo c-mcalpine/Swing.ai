@@ -95,8 +95,8 @@ export function DailyLessonScreen() {
       ? Math.round((completedCheckpoints / totalCheckpoints) * 100)
       : 0;
 
-  // Lesson is completable when all checkpoints are done (or there are none)
-  const canComplete = totalCheckpoints === 0 || completedCheckpoints >= totalCheckpoints;
+  // Lesson is always completable — tapping "Mark Complete" launches the camera verification flow.
+  const canComplete = true;
 
   // When returning from DrillCoach, check if a drill was just completed
   useFocusEffect(
@@ -143,18 +143,20 @@ export function DailyLessonScreen() {
   };
 
   const handleComplete = async () => {
-    if (!canComplete) {
-      Alert.alert(
-        'Complete the drill first',
-        `Finish the practice drill${totalCheckpoints > 1 ? 's' : ''} to mark this lesson complete.`
-      );
+    // Launch camera verification flow — same as drill but for the lesson itself.
+    // DrillCoach handles the timer/camera and calls submitReview on finish.
+    if (lesson?.id != null && lesson.verification_type && lesson.verification_type !== 'none') {
+      navigation.navigate('DrillCoach', {
+        lessonId: lesson.id,
+        fromSmartReview,
+        reviewItem: reviewItem ?? { item_type: 'lesson' as const, item_id: lesson.id },
+      });
       return;
     }
 
     // If from Smart Review, submit the completion
     if (fromSmartReview && reviewItem) {
-      // Calculate score based on progress (0-1 scale)
-      const score = totalCheckpoints > 0 ? Math.max(0.5, progress / 100) : 1;
+      const score = 1;
 
       // Use lesson duration if available
       const durationMin = lesson?.duration_min || 10;
@@ -193,7 +195,7 @@ export function DailyLessonScreen() {
     } else {
       // Completed from Home daily plan: submit so backend seeds user_review_item and can advance curriculum
       if (lesson?.id != null) {
-        const score = totalCheckpoints > 0 ? Math.max(0.5, progress / 100) : 1;
+        const score = 1;
         const durationMin = lesson.duration_min ?? 10;
         try {
           const result = await submitReview({
@@ -316,17 +318,14 @@ export function DailyLessonScreen() {
 
         {/* Practice Drill Section */}
         {drills.map((d: any) => {
-          const isCheckpoint = d.verification_type && d.verification_type !== 'none';
           const isDone = completedDrillIds.has(d.id);
           return (
             <View key={d.id} style={[styles.section, styles.drillSection]}>
               <View style={styles.drillSectionHeader}>
                 <Text style={styles.sectionTitle}>PRACTICE DRILL</Text>
-                {isCheckpoint && (
-                  <View style={[styles.checkpointBadge, isDone && styles.checkpointBadgeDone]}>
-                    <Text style={[styles.checkpointBadgeText, isDone && styles.checkpointBadgeTextDone]}>
-                      {isDone ? '✓ Done' : 'Required'}
-                    </Text>
+                {isDone && (
+                  <View style={styles.checkpointBadgeDone}>
+                    <Text style={styles.checkpointBadgeTextDone}>✓ Done</Text>
                   </View>
                 )}
               </View>
@@ -345,7 +344,7 @@ export function DailyLessonScreen() {
                     onPress={() => handleDrillStart(d)}
                   >
                     <Text style={[styles.drillCtaText, isDone && styles.drillCtaTextDone]}>
-                      {isDone ? 'COMPLETED' : isCheckpoint ? 'START DRILL' : 'VIEW STEPS'}
+                      {isDone ? 'COMPLETED' : 'START DRILL'}
                     </Text>
                     {!isDone && <Text style={styles.drillCtaIcon}>→</Text>}
                   </TouchableOpacity>
@@ -400,22 +399,16 @@ export function DailyLessonScreen() {
             size="large"
             fullWidth
             onPress={handleComplete}
-            disabled={submitting || !canComplete}
+            disabled={submitting}
           >
             <View style={styles.completeBtnContent}>
               <Text style={styles.completeBtnIcon}>✓</Text>
               <Text style={styles.completeBtnText}>
-                {submitting
-                  ? 'SUBMITTING...'
-                  : !canComplete
-                  ? `DRILL ${completedCheckpoints}/${totalCheckpoints}`
-                  : 'MARK COMPLETE'}
+                {submitting ? 'SUBMITTING...' : 'MARK COMPLETE'}
               </Text>
-              {canComplete && (
-                <View style={styles.xpBadge}>
-                  <Text style={styles.xpBadgeText}>+{lessonData.xpReward} XP</Text>
-                </View>
-              )}
+              <View style={styles.xpBadge}>
+                <Text style={styles.xpBadgeText}>+{lessonData.xpReward} XP</Text>
+              </View>
             </View>
           </Button>
         </View>

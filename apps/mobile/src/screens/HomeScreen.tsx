@@ -102,8 +102,7 @@ export function HomeScreen() {
   };
 
   const handleViewPlan = () => {
-    // Navigate to personalized plan (placeholder)
-    console.log('Navigate to personalized plan');
+    navigation.navigate('MyPlan');
   };
 
   const handleQuickDrill = (drillId: number) => {
@@ -346,6 +345,23 @@ export function HomeScreen() {
             )}
           </View>
         </View>
+
+        {/* My Curriculum Card */}
+        <TouchableOpacity
+          style={styles.curriculumCard}
+          onPress={() => navigation.navigate('PersonalizedPlan')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.curriculumCardLeft}>
+            <Text style={styles.curriculumCardIcon}>🎓</Text>
+            <View>
+              <Text style={styles.curriculumCardLabel}>MY CURRICULUM</Text>
+              <Text style={styles.curriculumCardTitle}>View Training Program</Text>
+              <Text style={styles.curriculumCardSub}>Foundation & corrective units</Text>
+            </View>
+          </View>
+          <Text style={styles.curriculumCardChevron}>›</Text>
+        </TouchableOpacity>
 
       </ScrollView>
 
@@ -858,5 +874,51 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: colors.textSecondary,
     fontSize: 14,
+  },
+
+  // Curriculum Card
+  curriculumCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: spacing.md,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    borderRadius: 20,
+    backgroundColor: '#1c3024',
+    borderWidth: 1,
+    borderColor: 'rgba(19,236,91,0.2)',
+  },
+  curriculumCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flex: 1,
+  },
+  curriculumCardIcon: {
+    fontSize: 28,
+  },
+  curriculumCardLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  curriculumCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  curriculumCardSub: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  curriculumCardChevron: {
+    fontSize: 24,
+    color: colors.primary,
+    marginLeft: spacing.sm,
   },
 });

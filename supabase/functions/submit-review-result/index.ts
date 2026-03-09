@@ -292,6 +292,105 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 4b) Sync unit-based progress (user_curriculum_unit_item + user_curriculum_unit)
+    //     Runs for all item types and sources so MyPlanScreen stays in sync.
+    //     Only marks items completed when score meets the threshold (same bar as legacy queue for
+    //     lessons; any non-zero submit counts as done for drills and cues).
+    const unitSyncEligible =
+      itemType === "lesson" ? score >= LESSON_COMPLETE_THRESHOLD : score > 0;
+
+    if (unitSyncEligible) {
+      try {
+        const nowIsoUnit = new Date().toISOString();
+
+        // Determine which FK column to filter on
+        const itemFkColumn =
+          itemType === "lesson" ? "lesson_id"
+          : itemType === "drill" ? "drill_id"
+          : "cue_id";
+
+        // Find all curriculum_unit_item rows referencing this content item
+        const { data: unitItemRows } = await supabase
+          .from("curriculum_unit_item")
+          .select("id, unit_id, is_required")
+          .eq(itemFkColumn, itemId);
+
+        if (unitItemRows && unitItemRows.length > 0) {
+          // Group by unit so we only run one unit-completion check per unit
+          const unitIds = [...new Set(unitItemRows.map((r: any) => r.unit_id as number))];
+
+          // Mark matching user_curriculum_unit_item rows as completed (idempotent)
+          const unitItemIds = unitItemRows.map((r: any) => r.id as number);
+          await supabase
+            .from("user_curriculum_unit_item")
+            .update({ status: "completed", completed_at: nowIsoUnit, updated_at: nowIsoUnit, score })
+            .eq("user_id", userId)
+            .in("unit_item_id", unitItemIds)
+            .neq("status", "completed");
+
+          // For each affected unit, check if all required items are now completed
+          for (const unitId of unitIds) {
+            // Count total required items in this unit
+            const { count: totalRequired } = await supabase
+              .from("curriculum_unit_item")
+              .select("id", { count: "exact", head: true })
+              .eq("unit_id", unitId)
+              .eq("is_required", true);
+
+            if (!totalRequired || totalRequired === 0) continue;
+
+            // Count completed required items for this user in this unit
+            const { data: allRequiredItems } = await supabase
+              .from("curriculum_unit_item")
+              .select("id")
+              .eq("unit_id", unitId)
+              .eq("is_required", true);
+
+            const requiredIds = (allRequiredItems ?? []).map((r: any) => r.id as number);
+
+            const { count: completedRequired } = await supabase
+              .from("user_curriculum_unit_item")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", userId)
+              .in("unit_item_id", requiredIds)
+              .eq("status", "completed");
+
+            if (completedRequired !== null && completedRequired >= totalRequired) {
+              // All required items done — mark unit completed
+              await supabase
+                .from("user_curriculum_unit")
+                .update({ status: "completed", completed_at: nowIsoUnit, updated_at: nowIsoUnit })
+                .eq("user_id", userId)
+                .eq("unit_id", unitId)
+                .neq("status", "completed");
+
+              // Activate next queued unit (highest priority_score, then oldest created_at)
+              const { data: nextUnit } = await supabase
+                .from("user_curriculum_unit")
+                .select("unit_id")
+                .eq("user_id", userId)
+                .eq("status", "queued")
+                .order("priority_score", { ascending: false })
+                .order("created_at", { ascending: true })
+                .limit(1)
+                .maybeSingle();
+
+              if (nextUnit?.unit_id) {
+                await supabase
+                  .from("user_curriculum_unit")
+                  .update({ status: "active", started_at: nowIsoUnit, updated_at: nowIsoUnit })
+                  .eq("user_id", userId)
+                  .eq("unit_id", nextUnit.unit_id);
+              }
+            }
+          }
+        }
+      } catch (unitErr) {
+        // Unit progress sync is non-critical; log but do not fail the response
+        console.error("[submit-review-result] unit progress sync failed:", unitErr);
+      }
+    }
+
     // 5) If issue_slug present, update last_targeted_at
     if (issueSlug) {
       await supabase
