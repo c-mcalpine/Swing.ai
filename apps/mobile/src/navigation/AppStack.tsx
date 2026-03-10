@@ -38,7 +38,11 @@ export type AppStackParamList = {
   PersonalizedPlan: undefined;
   MyPlan: undefined;
   UnitDetail: { unitId: number };
-  CueDetail: { cueId: number };
+  CueDetail: {
+    cueId: number;
+    fromSmartReview?: boolean;
+    reviewItem?: { item_type: 'drill' | 'lesson' | 'cue'; item_id: number; issue_slug?: string | null; [key: string]: unknown };
+  };
   DailyLesson: { lessonId?: number; fromSmartReview?: boolean; reviewItem?: { item_type: 'drill' | 'lesson'; item_id: number; issue_slug?: string | null; [key: string]: unknown } };
   QuickDrills: undefined;
   DrillDetails: { drillId: number; fromSmartReview?: boolean; reviewItem?: { item_type: 'drill' | 'lesson'; item_id: number; issue_slug?: string | null; [key: string]: unknown } };

@@ -27,24 +27,68 @@ import { BrainIcon } from 'phosphor-react-native';
 type ReviewScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Review'>;
 type LessonRow = Database['public']['Tables']['lesson']['Row'];
 type DrillRow = Database['public']['Tables']['drill']['Row'];
+type CoachingCueRow = Database['public']['Tables']['coaching_cue']['Row'];
 
 const PLACEHOLDER_IMAGE =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuC9FXOKAEpmAu12CM8oS0U9vFKhZGhyprWjrODS_3PTaY-DeKt3AEQW5S0CHZoQruOV8KkAVuzpGSYPUvvPzR4SRiawOiV56YXbZ0OWL7r47dOGnoOUmjrtAaheXKDVMcD5HU9qQMDV_69bzU0CcsM8xBNaKt4P17mcuOY0H6UBUaaEalJS4LbxAcEzEUg0yYOV9gKfAveKCUYNWJz3e7tgs7ipeuAdWx06gAUwKrSS149gCrYl18_QB7y8JxoRDflxvsefDtIJ8_Y';
 
-function itemDisplayTitle(isLesson: boolean, itemData: LessonRow | DrillRow | undefined): string {
-  if (!itemData) return isLesson ? 'Review Lesson' : 'Review Drill';
-  return isLesson ? (itemData as LessonRow).title : (itemData as DrillRow).name;
+type ReviewItemType = 'lesson' | 'drill' | 'cue';
+
+function itemDisplayTitle(
+  itemType: ReviewItemType,
+  itemData: LessonRow | DrillRow | CoachingCueRow | undefined
+): string {
+  if (!itemData) {
+    if (itemType === 'lesson') return 'Review Lesson';
+    if (itemType === 'cue') return 'Review Cue';
+    return 'Review Drill';
+  }
+  if (itemType === 'lesson') return (itemData as LessonRow).title;
+  if (itemType === 'cue') return (itemData as CoachingCueRow).text;
+  return (itemData as DrillRow).name;
 }
 
 function itemDisplayDescription(
-  isLesson: boolean,
-  itemData: LessonRow | DrillRow | undefined,
+  itemType: ReviewItemType,
+  itemData: LessonRow | DrillRow | CoachingCueRow | undefined,
   fallback: string
 ): string {
   if (!itemData) return fallback;
-  if (isLesson) return (itemData as LessonRow).summary ?? fallback;
+  if (itemType === 'lesson') return (itemData as LessonRow).summary ?? fallback;
+  if (itemType === 'cue') return (itemData as CoachingCueRow).notes ?? fallback;
   const d = itemData as DrillRow;
   return d.objective ?? d.description ?? fallback;
+}
+
+function itemIcon(itemType: ReviewItemType): string {
+  if (itemType === 'lesson') return '🎓';
+  if (itemType === 'cue') return '💡';
+  return '⛳';
+}
+
+function navigateToReviewItem(
+  navigation: ReviewScreenNavigationProp,
+  item: any
+) {
+  if (item.item_type === 'lesson') {
+    navigation.navigate('DailyLesson', {
+      lessonId: item.item_id,
+      fromSmartReview: true,
+      reviewItem: item,
+    });
+  } else if (item.item_type === 'cue') {
+    navigation.navigate('CueDetail', {
+      cueId: item.item_id,
+      fromSmartReview: true,
+      reviewItem: item,
+    });
+  } else {
+    navigation.navigate('DrillDetails', {
+      drillId: item.item_id,
+      fromSmartReview: true,
+      reviewItem: item,
+    });
+  }
 }
 
 /**
@@ -77,16 +121,19 @@ export function ReviewScreen() {
     }
 
     const firstItem = plan.items[0];
-    const isLesson = firstItem.item_type === 'lesson';
-    const itemData = isLesson
-      ? taxonomy?.lessons?.find((l) => l.id === firstItem.item_id)
-      : taxonomy?.drills?.find((d) => d.id === firstItem.item_id);
-    const defaultMinutes = isLesson ? 10 : 8;
+    const itemType: ReviewItemType = firstItem.item_type;
+    const itemData =
+      itemType === 'lesson'
+        ? taxonomy?.lessons?.find((l) => l.id === firstItem.item_id)
+        : itemType === 'cue'
+        ? taxonomy?.cues?.find((c) => c.id === firstItem.item_id)
+        : taxonomy?.drills?.find((d) => d.id === firstItem.item_id);
+    const defaultMinutes = itemType === 'lesson' ? 10 : itemType === 'cue' ? 3 : 8;
 
     return {
-      title: itemDisplayTitle(isLesson, itemData),
+      title: itemDisplayTitle(itemType, itemData),
       description:
-        firstItem.reason || itemDisplayDescription(isLesson, itemData, 'Time to review this item.'),
+        firstItem.reason || itemDisplayDescription(itemType, itemData, 'Time to review this item.'),
       image: PLACEHOLDER_IMAGE,
       progress: { current: 1, total: 1 },
       duration: `${defaultMinutes} min`,
@@ -101,10 +148,13 @@ export function ReviewScreen() {
     if (!plan?.items || plan.items.length === 0) return [];
 
     return plan.items.slice(0, 3).map((item: any, index: number) => {
-      const isLesson = item.item_type === 'lesson';
-      const itemData = isLesson
-        ? taxonomy?.lessons?.find((l) => l.id === item.item_id)
-        : taxonomy?.drills?.find((d) => d.id === item.item_id);
+      const iType: ReviewItemType = item.item_type;
+      const itemData =
+        iType === 'lesson'
+          ? taxonomy?.lessons?.find((l) => l.id === item.item_id)
+          : iType === 'cue'
+          ? taxonomy?.cues?.find((c) => c.id === item.item_id)
+          : taxonomy?.drills?.find((d) => d.id === item.item_id);
 
       const isDue = item.due_at && new Date(item.due_at) <= new Date();
       const dueDate = item.due_at ? new Date(item.due_at) : null;
@@ -116,10 +166,10 @@ export function ReviewScreen() {
 
       return {
         id: item.item_id,
-        title: itemDisplayTitle(isLesson, itemData),
-        description: item.reason || itemDisplayDescription(isLesson, itemData, ''),
+        title: itemDisplayTitle(iType, itemData),
+        description: item.reason || itemDisplayDescription(iType, itemData, ''),
         timeAgo,
-        icon: item.item_type === 'lesson' ? '🎓' : '⛳',
+        icon: itemIcon(iType),
         color: index === 0 ? 'primary' : index === 1 ? 'orange' : 'blue',
         active: index === 0 && isDue,
       };
@@ -131,11 +181,14 @@ export function ReviewScreen() {
     if (!plan?.items || plan.items.length < 2) return [];
 
     return plan.items.slice(1, 3).map((item: any) => {
-      const isLesson = item.item_type === 'lesson';
-      const itemData = isLesson
-        ? taxonomy?.lessons?.find((l) => l.id === item.item_id)
-        : taxonomy?.drills?.find((d) => d.id === item.item_id);
-      const defaultMinutes = isLesson ? 10 : 8;
+      const iType: ReviewItemType = item.item_type;
+      const itemData =
+        iType === 'lesson'
+          ? taxonomy?.lessons?.find((l) => l.id === item.item_id)
+          : iType === 'cue'
+          ? taxonomy?.cues?.find((c) => c.id === item.item_id)
+          : taxonomy?.drills?.find((d) => d.id === item.item_id);
+      const defaultMinutes = iType === 'lesson' ? 10 : iType === 'cue' ? 3 : 8;
 
       const isDue = item.due_at && new Date(item.due_at) <= new Date();
       const dueDate = item.due_at ? new Date(item.due_at) : null;
@@ -147,7 +200,7 @@ export function ReviewScreen() {
 
       return {
         id: item.item_id,
-        title: itemDisplayTitle(isLesson, itemData),
+        title: itemDisplayTitle(iType, itemData),
         subtitle,
         duration: `${defaultMinutes} min`,
         image: PLACEHOLDER_IMAGE,
@@ -271,20 +324,7 @@ export function ReviewScreen() {
                 style={styles.startBtn}
                 onPress={() => {
                   if (upNextLesson.item) {
-                    const item = upNextLesson.item;
-                    if (item.item_type === 'lesson') {
-                      navigation.navigate('DailyLesson', {
-                        lessonId: item.item_id,
-                        fromSmartReview: true,
-                        reviewItem: item,
-                      });
-                    } else {
-                      navigation.navigate('DrillDetails', {
-                        drillId: item.item_id,
-                        fromSmartReview: true,
-                        reviewItem: item,
-                      });
-                    }
+                    navigateToReviewItem(navigation, upNextLesson.item);
                   }
                 }}
                 disabled={planLoading || !upNextLesson.item}
@@ -379,20 +419,7 @@ export function ReviewScreen() {
                     style={styles.drillAction}
                     onPress={() => {
                       if (drill.item) {
-                        const item = drill.item;
-                        if (item.item_type === 'lesson') {
-                          navigation.navigate('DailyLesson', {
-                            lessonId: item.item_id,
-                            fromSmartReview: true,
-                            reviewItem: item,
-                          });
-                        } else {
-                          navigation.navigate('DrillDetails', {
-                            drillId: item.item_id,
-                            fromSmartReview: true,
-                            reviewItem: item,
-                          });
-                        }
+                        navigateToReviewItem(navigation, drill.item);
                       }
                     }}
                   >

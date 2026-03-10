@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,50 +7,126 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCueDetail } from '@/hooks/useCueDetail';
+import { buildCuePresentation } from '@/lib/cuePresentation';
+import { useSubmitReviewResult } from '@/hooks/useSmartReview';
+import { useAuth } from '@/lib/AuthContext';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
-import type { Database } from '@/lib/supabaseTypes';
 
-type CoachingCue = Database['public']['Tables']['coaching_cue']['Row'];
-
-type CueDetailScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'CueDetail'>;
-type CueDetailScreenRouteProp = RouteProp<AppStackParamList, 'CueDetail'>;
+type CueDetailNav = NativeStackNavigationProp<AppStackParamList, 'CueDetail'>;
+type CueDetailRoute = RouteProp<AppStackParamList, 'CueDetail'>;
 
 const CUE_TYPE_LABELS: Record<string, string> = {
   feel: 'Feel',
   visual: 'Visual',
   thought: 'Thought',
+  checkpoint: 'Checkpoint',
   verbal: 'Verbal',
 };
 
-const fetchCue = async (cueId: number) => {
-  const { data, error } = await supabase
-    .from('coaching_cue')
-    .select('*')
-    .eq('id', cueId)
-    .single();
-  if (error) throw error;
-  return data as CoachingCue;
-};
+type PracticeState = 'ready' | 'practicing' | 'completing';
+
+// ─────────────────────────────────────────────
+// Small presentational components
+// ─────────────────────────────────────────────
+
+function SectionLabel({ text }: { text: string }) {
+  return <Text style={styles.sectionLabel}>{text}</Text>;
+}
+
+function BulletRow({ text, icon = '·' }: { text: string; icon?: string }) {
+  return (
+    <View style={styles.bulletRow}>
+      <Text style={styles.bulletIcon}>{icon}</Text>
+      <Text style={styles.bulletText}>{text}</Text>
+    </View>
+  );
+}
+
+function NumberedStep({ n, text }: { n: number; text: string }) {
+  return (
+    <View style={styles.numberedStep}>
+      <View style={styles.stepNum}>
+        <Text style={styles.stepNumText}>{n}</Text>
+      </View>
+      <Text style={styles.stepText}>{text}</Text>
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Main Screen
+// ─────────────────────────────────────────────
 
 export function CueDetailScreen() {
-  const navigation = useNavigation<CueDetailScreenNavigationProp>();
-  const route = useRoute<CueDetailScreenRouteProp>();
-  const { cueId } = route.params;
+  const navigation = useNavigation<CueDetailNav>();
+  const route = useRoute<CueDetailRoute>();
+  const { cueId, fromSmartReview, reviewItem } = route.params;
 
-  const { data: cue, isLoading, error } = useQuery({
-    queryKey: ['cue', cueId],
-    queryFn: () => fetchCue(cueId),
-    staleTime: 10 * 60 * 1000,
-  });
+  const scrollRef = useRef<ScrollView | null>(null);
+  const tryItNowRef = useRef<View | null>(null);
+  const tryItNowY = useRef<number>(0);
+
+  const queryClient = useQueryClient();
+  const { userId } = useAuth();
+  const { submit: submitReview } = useSubmitReviewResult();
+
+  const { data: detail, isLoading, error } = useCueDetail(cueId);
+  const [practiceState, setPracticeState] = useState<PracticeState>('ready');
+
+  const handlePracticeCta = async () => {
+    if (practiceState === 'ready') {
+      setPracticeState('practicing');
+      scrollRef.current?.scrollTo({ y: tryItNowY.current, animated: true });
+      return;
+    }
+
+    if (practiceState === 'practicing') {
+      setPracticeState('completing');
+      try {
+        const result = await submitReview({
+          item_type: 'cue',
+          item_id: cueId,
+          score: 1,
+          duration_min: 1,
+          source: fromSmartReview ? 'review' : 'daily',
+        });
+
+        // Refresh plan data
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['myPlan', userId] }),
+          queryClient.invalidateQueries({ queryKey: ['dailyPlan'] }),
+        ]);
+
+        const xpMsg = result?.xp_awarded ? `\n+${result.xp_awarded} XP` : '';
+        Alert.alert('Cue Practiced!', `Nice work.${xpMsg}`, [
+          {
+            text: 'Continue',
+            onPress: () => {
+              if (fromSmartReview) {
+                navigation.navigate('Review');
+              } else {
+                navigation.goBack();
+              }
+            },
+          },
+        ]);
+      } catch (err: any) {
+        Alert.alert('Error', err?.message ?? 'Could not save. Try again.');
+        setPracticeState('practicing');
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
@@ -65,12 +141,74 @@ export function CueDetailScreen() {
         <View style={styles.centered}>
           <ActivityIndicator color={colors.primary} size="large" />
         </View>
-      ) : error || !cue ? (
+      ) : error || !detail ? (
         <View style={styles.centered}>
           <Text style={styles.errorText}>Could not load cue.</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => navigation.goBack()}>
+            <Text style={styles.retryBtnText}>Go Back</Text>
+          </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        <Content
+          detail={detail}
+          practiceState={practiceState}
+          scrollRef={scrollRef}
+          tryItNowRef={tryItNowRef}
+          tryItNowY={tryItNowY}
+          onPracticeCta={handlePracticeCta}
+          onDrillPress={(drillId) =>
+            navigation.navigate('DrillDetails', { drillId, fromSmartReview: false })
+          }
+          onUnitPress={(unitId) => navigation.navigate('UnitDetail', { unitId })}
+        />
+      )}
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Content (extracted so logic stays clean)
+// ─────────────────────────────────────────────
+
+function Content({
+  detail,
+  practiceState,
+  scrollRef,
+  tryItNowRef,
+  tryItNowY,
+  onPracticeCta,
+  onDrillPress,
+  onUnitPress,
+}: {
+  detail: NonNullable<ReturnType<typeof useCueDetail>['data']>;
+  practiceState: PracticeState;
+  scrollRef: React.RefObject<ScrollView | null>;
+  tryItNowRef: React.RefObject<View | null>;
+  tryItNowY: React.MutableRefObject<number>;
+  onPracticeCta: () => void;
+  onDrillPress: (drillId: number) => void;
+  onUnitPress: (unitId: number) => void;
+}) {
+  const { cue, phase, relatedDrills, curriculumContext } = detail;
+  const presentation = React.useMemo(() => buildCuePresentation(detail), [detail]);
+
+  const ctaLabel =
+    practiceState === 'ready'
+      ? 'Practice This Cue'
+      : practiceState === 'completing'
+      ? ''
+      : 'I Practiced This';
+
+  return (
+    <>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 1. Hero Cue Card */}
+        <View style={styles.heroCard}>
           {cue.cue_type && (
             <View style={styles.typeBadge}>
               <Text style={styles.typeBadgeText}>
@@ -78,43 +216,146 @@ export function CueDetailScreen() {
               </Text>
             </View>
           )}
-
-          <View style={styles.cueCard}>
-            <Text style={styles.quoteIcon}>"</Text>
-            <Text style={styles.cueText}>{cue.text}</Text>
-            <Text style={styles.quoteIconClose}>"</Text>
-          </View>
-
-          {cue.notes && (
-            <View style={styles.notesSection}>
-              <Text style={styles.notesLabel}>COACHING NOTES</Text>
-              <Text style={styles.notesText}>{cue.notes}</Text>
-            </View>
+          <Text style={styles.quoteIcon}>"</Text>
+          <Text style={styles.cueText}>{cue.text}</Text>
+          <Text style={styles.quoteIconClose}>"</Text>
+          {phase && (
+            <Text style={styles.phaseSub}>{phase.name} Phase</Text>
           )}
+        </View>
 
-          <View style={styles.metaRow}>
-            {cue.level != null && (
-              <View style={styles.metaChip}>
-                <Text style={styles.metaChipText}>Level {cue.level}</Text>
-              </View>
-            )}
-            {cue.cue_type && (
-              <View style={[styles.metaChip, styles.metaChipGreen]}>
-                <Text style={[styles.metaChipText, styles.metaChipTextGreen]}>
-                  {CUE_TYPE_LABELS[cue.cue_type] ?? cue.cue_type}
-                </Text>
-              </View>
-            )}
+        {/* 2. What This Helps */}
+        <View style={styles.section}>
+          <SectionLabel text="WHAT THIS HELPS" />
+          <Text style={styles.bodyText}>{presentation.whatThisHelps}</Text>
+        </View>
+
+        {/* 3. Use This When */}
+        <View style={styles.section}>
+          <SectionLabel text="USE THIS WHEN" />
+          <View style={styles.bulletList}>
+            {presentation.useThisWhen.map((item, i) => (
+              <BulletRow key={i} text={item} icon="→" />
+            ))}
           </View>
+        </View>
 
-          <TouchableOpacity style={styles.gotItBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.gotItText}>Got It</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      )}
-    </View>
+        {/* 4. Try It Now */}
+        <View
+          ref={tryItNowRef}
+          onLayout={(e) => {
+            tryItNowY.current = e.nativeEvent.layout.y;
+          }}
+          style={[styles.section, styles.tryItSection]}
+        >
+          <SectionLabel text="TRY IT NOW" />
+          <View style={styles.stepsContainer}>
+            {presentation.tryItNow.map((step, i) => (
+              <NumberedStep key={i} n={i + 1} text={step} />
+            ))}
+          </View>
+        </View>
+
+        {/* 5. Good Reps Feel Like */}
+        <View style={styles.section}>
+          <SectionLabel text="GOOD REPS FEEL LIKE" />
+          <View style={styles.bulletList}>
+            {presentation.goodRepSigns.map((item, i) => (
+              <BulletRow key={i} text={item} icon="✓" />
+            ))}
+          </View>
+        </View>
+
+        {/* 6. Overdo Warning */}
+        {presentation.overdoWarning && (
+          <View style={styles.warningCard}>
+            <Text style={styles.warningIcon}>⚠</Text>
+            <Text style={styles.warningText}>{presentation.overdoWarning}</Text>
+          </View>
+        )}
+
+        {/* 7. Related Drills */}
+        {relatedDrills.length > 0 && (
+          <View style={styles.section}>
+            <SectionLabel text="RELATED DRILLS" />
+            {relatedDrills.map((drill) => (
+              <TouchableOpacity
+                key={drill.id}
+                style={styles.drillCard}
+                onPress={() => onDrillPress(drill.id)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.drillCardBody}>
+                  <Text style={styles.drillName}>{drill.name}</Text>
+                  {drill.objective && (
+                    <Text style={styles.drillObjective} numberOfLines={2}>
+                      {drill.objective}
+                    </Text>
+                  )}
+                </View>
+                <Text style={styles.drillArrow}>→</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* 8. Part of Your Plan */}
+        {curriculumContext && (
+          <View style={styles.section}>
+            <SectionLabel text="PART OF YOUR PLAN" />
+            <TouchableOpacity
+              style={styles.unitCard}
+              onPress={() => onUnitPress(curriculumContext.unitId)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.unitCardBody}>
+                <Text style={styles.unitLabel}>UNIT</Text>
+                <Text style={styles.unitName}>{curriculumContext.unitName}</Text>
+                {/* Show up to 2 sibling item titles for context */}
+                {curriculumContext.siblingItems
+                  .filter((s) => s.resolved_cue_id !== cue.id)
+                  .slice(0, 2)
+                  .map((s) => (
+                    <Text key={s.id} style={styles.siblingTitle} numberOfLines={1}>
+                      · {s.content_title}
+                    </Text>
+                  ))}
+              </View>
+              <Text style={styles.drillArrow}>→</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Bottom spacer so CTA doesn't cover content */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Sticky bottom CTA */}
+      <SafeAreaView style={styles.ctaContainer}>
+        <TouchableOpacity
+          style={[
+            styles.ctaBtn,
+            practiceState === 'practicing' && styles.ctaBtnActive,
+            practiceState === 'completing' && styles.ctaBtnDisabled,
+          ]}
+          onPress={onPracticeCta}
+          disabled={practiceState === 'completing'}
+          activeOpacity={0.85}
+        >
+          {practiceState === 'completing' ? (
+            <ActivityIndicator color={colors.background} />
+          ) : (
+            <Text style={styles.ctaBtnText}>{ctaLabel}</Text>
+          )}
+        </TouchableOpacity>
+      </SafeAreaView>
+    </>
   );
 }
+
+// ─────────────────────────────────────────────
+// Styles
+// ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -154,37 +395,35 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.md,
   },
   errorText: {
     color: colors.textSecondary,
     fontSize: 16,
   },
-  content: {
+  retryBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  retryBtnText: {
+    color: colors.white,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
+  // Scroll
+  scroll: {
     flex: 1,
   },
-  contentContainer: {
+  scrollContent: {
     padding: spacing.lg,
-    alignItems: 'center',
     gap: spacing.lg,
   },
-  typeBadge: {
-    paddingVertical: 6,
-    paddingHorizontal: 18,
-    borderRadius: 9999,
-    backgroundColor: 'rgba(19, 236, 91, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(19, 236, 91, 0.3)',
-    alignSelf: 'center',
-  },
-  typeBadgeText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  cueCard: {
-    width: '100%',
+
+  // Hero card
+  heroCard: {
     backgroundColor: '#1c3024',
     borderRadius: 24,
     padding: spacing.lg,
@@ -193,18 +432,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
+  typeBadge: {
+    paddingVertical: 5,
+    paddingHorizontal: 16,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(19, 236, 91, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(19, 236, 91, 0.3)',
+    alignSelf: 'center',
+    marginBottom: 4,
+  },
+  typeBadgeText: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
   quoteIcon: {
-    fontSize: 48,
+    fontSize: 40,
     color: colors.primary,
     opacity: 0.4,
-    lineHeight: 48,
+    lineHeight: 40,
     alignSelf: 'flex-start',
   },
   quoteIconClose: {
-    fontSize: 48,
+    fontSize: 40,
     color: colors.primary,
     opacity: 0.4,
-    lineHeight: 48,
+    lineHeight: 40,
     alignSelf: 'flex-end',
   },
   cueText: {
@@ -214,57 +470,214 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 32,
   },
-  notesSection: {
-    width: '100%',
+  phaseSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+    opacity: 0.7,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: 4,
+  },
+
+  // Generic section
+  section: {
     gap: spacing.sm,
   },
-  notesLabel: {
+  sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
     color: colors.textSecondary,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  notesText: {
+  bodyText: {
     fontSize: 15,
     color: '#d1d5db',
     lineHeight: 22,
   },
-  metaRow: {
+
+  // Bullet list
+  bulletList: {
+    gap: 8,
+  },
+  bulletRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    alignItems: 'flex-start',
+    gap: 10,
   },
-  metaChip: {
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 9999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+  bulletIcon: {
+    fontSize: 14,
+    color: colors.primary,
+    marginTop: 2,
+    width: 16,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#d1d5db',
+    lineHeight: 20,
+  },
+
+  // Try It Now section (slightly elevated background)
+  tryItSection: {
+    backgroundColor: 'rgba(19, 236, 91, 0.04)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(19, 236, 91, 0.1)',
+    padding: spacing.md,
+    paddingTop: spacing.sm,
   },
-  metaChipGreen: {
-    backgroundColor: 'rgba(19, 236, 91, 0.08)',
-    borderColor: 'rgba(19, 236, 91, 0.2)',
+  stepsContainer: {
+    gap: 10,
   },
-  metaChipText: {
-    fontSize: 12,
+  numberedStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  stepNum: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  stepNumText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.background,
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.white,
+    lineHeight: 20,
+  },
+
+  // Warning card
+  warningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: 'rgba(251, 191, 36, 0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.2)',
+    padding: spacing.md,
+  },
+  warningIcon: {
+    fontSize: 16,
+    color: '#fbbf24',
+    marginTop: 1,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#fde68a',
+    lineHeight: 19,
+  },
+
+  // Drill cards
+  drillCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: spacing.md,
+    gap: 12,
+  },
+  drillCardBody: {
+    flex: 1,
+    gap: 3,
+  },
+  drillName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  drillObjective: {
+    fontSize: 13,
     color: colors.textSecondary,
-    fontWeight: '500',
+    lineHeight: 18,
   },
-  metaChipTextGreen: {
+  drillArrow: {
+    fontSize: 18,
     color: colors.primary,
   },
-  gotItBtn: {
-    width: '100%',
-    paddingVertical: 16,
+
+  // Unit card
+  unitCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(19, 236, 91, 0.05)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(19, 236, 91, 0.12)',
+    padding: spacing.md,
+    gap: 12,
+  },
+  unitCardBody: {
+    flex: 1,
+    gap: 4,
+  },
+  unitLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    opacity: 0.7,
+  },
+  unitName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  siblingTitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+
+  // Bottom CTA
+  ctaContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    paddingTop: 12,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  ctaBtn: {
+    height: 54,
     borderRadius: 9999,
     backgroundColor: colors.primary,
     alignItems: 'center',
-    marginTop: spacing.sm,
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 6,
   },
-  gotItText: {
+  ctaBtnActive: {
+    backgroundColor: '#0fa84e',
+  },
+  ctaBtnDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  ctaBtnText: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.background,
