@@ -16,6 +16,7 @@ import { useCueDetail } from '@/hooks/useCueDetail';
 import { buildCuePresentation } from '@/lib/cuePresentation';
 import { useSubmitReviewResult } from '@/hooks/useSmartReview';
 import { useAuth } from '@/lib/AuthContext';
+import { XP_BASE } from '@/lib/xpConstants';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
 
@@ -79,6 +80,7 @@ export function CueDetailScreen() {
 
   const { data: detail, isLoading, error } = useCueDetail(cueId);
   const [practiceState, setPracticeState] = useState<PracticeState>('ready');
+  const [earnedXp, setEarnedXp] = useState<number | null>(null);
 
   const handlePracticeCta = async () => {
     if (practiceState === 'ready') {
@@ -104,6 +106,7 @@ export function CueDetailScreen() {
           queryClient.invalidateQueries({ queryKey: ['dailyPlan'] }),
         ]);
 
+        if (result?.xp_awarded) setEarnedXp(result.xp_awarded);
         const xpMsg = result?.xp_awarded ? `\n+${result.xp_awarded} XP` : '';
         Alert.alert('Cue Practiced!', `Nice work.${xpMsg}`, [
           {
@@ -152,6 +155,7 @@ export function CueDetailScreen() {
         <Content
           detail={detail}
           practiceState={practiceState}
+          earnedXp={earnedXp}
           scrollRef={scrollRef}
           tryItNowRef={tryItNowRef}
           tryItNowY={tryItNowY}
@@ -173,6 +177,7 @@ export function CueDetailScreen() {
 function Content({
   detail,
   practiceState,
+  earnedXp,
   scrollRef,
   tryItNowRef,
   tryItNowY,
@@ -182,6 +187,7 @@ function Content({
 }: {
   detail: NonNullable<ReturnType<typeof useCueDetail>['data']>;
   practiceState: PracticeState;
+  earnedXp: number | null;
   scrollRef: React.RefObject<ScrollView | null>;
   tryItNowRef: React.RefObject<View | null>;
   tryItNowY: React.MutableRefObject<number>;
@@ -325,6 +331,62 @@ function Content({
             </TouchableOpacity>
           </View>
         )}
+
+        {/* 9. Bonus XP Available */}
+        <View style={styles.section}>
+          <SectionLabel text="XP AVAILABLE" />
+          <View style={styles.xpBlock}>
+            {/* Cue XP row */}
+            <View style={styles.xpRow}>
+              <View style={styles.xpRowLeft}>
+                <Text style={styles.xpRowIcon}>⚡</Text>
+                <Text style={styles.xpRowLabel}>Practice this cue</Text>
+              </View>
+              {earnedXp != null ? (
+                <View style={styles.xpEarnedBadge}>
+                  <Text style={styles.xpEarnedBadgeText}>+{earnedXp} XP earned!</Text>
+                </View>
+              ) : (
+                <Text style={styles.xpRowAmount}>+{XP_BASE.cue} XP</Text>
+              )}
+            </View>
+
+            {/* Related drills XP rows */}
+            {relatedDrills.slice(0, 3).map((drill) => (
+              <TouchableOpacity
+                key={drill.id}
+                style={styles.xpRow}
+                onPress={() => onDrillPress(drill.id)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.xpRowLeft}>
+                  <Text style={styles.xpRowIcon}>🏌️</Text>
+                  <Text style={styles.xpRowLabel} numberOfLines={1}>{drill.name}</Text>
+                </View>
+                <View style={styles.xpRowRight}>
+                  <Text style={styles.xpRowAmount}>+{XP_BASE.drill} XP</Text>
+                  <Text style={styles.xpRowArrow}>→</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+
+            {/* Lesson XP row if curriculum context has a lesson sibling */}
+            {curriculumContext?.siblingItems
+              .filter((s) => s.item_type === 'lesson')
+              .slice(0, 1)
+              .map((s) => (
+                <View key={s.id} style={styles.xpRow}>
+                  <View style={styles.xpRowLeft}>
+                    <Text style={styles.xpRowIcon}>📖</Text>
+                    <Text style={styles.xpRowLabel} numberOfLines={1}>
+                      {s.content_title ?? 'Related Lesson'}
+                    </Text>
+                  </View>
+                  <Text style={styles.xpRowAmount}>+{XP_BASE.lesson} XP</Text>
+                </View>
+              ))}
+          </View>
+        </View>
 
         {/* Bottom spacer so CTA doesn't cover content */}
         <View style={{ height: 100 }} />
@@ -681,5 +743,63 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.background,
+  },
+
+  // Bonus XP block
+  xpBlock: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+  },
+  xpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  xpRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    marginRight: 8,
+  },
+  xpRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  xpRowIcon: {
+    fontSize: 16,
+  },
+  xpRowLabel: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  xpRowAmount: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  xpRowArrow: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  xpEarnedBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: 100,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  xpEarnedBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
   },
 });

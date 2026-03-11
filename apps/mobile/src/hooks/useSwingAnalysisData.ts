@@ -7,8 +7,16 @@ import type { Database } from '@/lib/supabaseTypes';
 
 type SwingAnalysisRow = Database['public']['Tables']['swing_analysis']['Row'];
 type SwingCaptureRow = Database['public']['Tables']['swing_capture']['Row'];
+type SwingFrameRow = Database['public']['Tables']['swing_frame']['Row'];
 /** Result of .from('swing_analysis').select('*, swing_capture!inner(*)') — analysis row + joined capture */
 type AnalysisRowWithCapture = SwingAnalysisRow & { swing_capture: SwingCaptureRow };
+
+export interface SwingFrameWithUrls extends SwingFrameRow {
+  /** Signed URL for the raw frame image, valid for 1 hour */
+  frameSignedUrl: string | null;
+  /** Signed URL for the pose/overlay image, valid for 1 hour */
+  overlaySignedUrl: string | null;
+}
 
 const POLL_DELAY_MS = 1000;
 const MAX_POLL_ATTEMPTS = 20; // ~20s total
@@ -21,8 +29,12 @@ const MAX_POLL_ATTEMPTS = 20; // ~20s total
  * 2. When status === 'analyzed', fetch swing_analysis and render.
  * 3. When status === 'failed', show error and Retry button.
  */
+export interface SwingAnalysisDataResult extends SwingAnalysisWithCapture {
+  frames: SwingFrameWithUrls[];
+}
+
 export function useSwingAnalysisData(captureId: number | undefined) {
-  const [data, setData] = useState<SwingAnalysisWithCapture | null>(null);
+  const [data, setData] = useState<SwingAnalysisDataResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,9 +133,41 @@ export function useSwingAnalysisData(captureId: number | undefined) {
 
       const row = analysisData as AnalysisRowWithCapture;
       const { swing_capture, ...analysisRow } = row;
+
+      // Fetch swing_frame rows for this capture
+      const { data: framesData } = await supabase
+        .from('swing_frame')
+        .select('*')
+        .eq('capture_id', captureId)
+        .order('timestamp_ms', { ascending: true });
+
+      if (cancelled) return;
+
+      // Resolve signed URLs for frame and overlay paths (1-hour TTL)
+      const frames: SwingFrameWithUrls[] = await Promise.all(
+        ((framesData ?? []) as SwingFrameRow[]).map(async (frame) => {
+          const [frameResult, overlayResult] = await Promise.all([
+            frame.frame_path
+              ? supabase.storage.from('swing-frames').createSignedUrl(frame.frame_path, 3600)
+              : Promise.resolve({ data: null }),
+            frame.overlay_path
+              ? supabase.storage.from('swing-overlays').createSignedUrl(frame.overlay_path, 3600)
+              : Promise.resolve({ data: null }),
+          ]);
+          return {
+            ...frame,
+            frameSignedUrl: (frameResult.data as { signedUrl?: string } | null)?.signedUrl ?? null,
+            overlaySignedUrl: (overlayResult.data as { signedUrl?: string } | null)?.signedUrl ?? null,
+          };
+        })
+      );
+
+      if (cancelled) return;
+
       setData({
         analysis: analysisRow as SwingAnalysisRow,
         capture: swing_capture,
+        frames,
       });
       setLoading(false);
       setAnalyzing(false);

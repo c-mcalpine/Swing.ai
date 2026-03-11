@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,18 +8,25 @@ import {
   ActivityIndicator,
   Dimensions,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Svg, { Circle } from 'react-native-svg';
 import { useQueryClient } from '@tanstack/react-query';
-import { useSwingAnalysisData } from '@/hooks/useSwingAnalysisData';
+import { useSwingAnalysisData, type SwingFrameWithUrls } from '@/hooks/useSwingAnalysisData';
 import { useUserProfile } from '@/hooks/useProfile';
 import { useDailyPlanQuery } from '@/hooks/useQueries';
 import { awardXp } from '@/lib/xp';
+import { useAuth } from '@/lib/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
 import { colors, spacing, typography } from '@/styles/tokens';
+import { XP_BASE } from '@/lib/xpConstants';
 import type { AppStackParamList } from '@/navigation/AppStack';
+import type { Database } from '@/lib/supabaseTypes';
+
+type SwingErrorRow = Database['public']['Tables']['swing_error']['Row'];
 
 type AnalysisScreenRouteProp = RouteProp<AppStackParamList, 'Analysis'>;
 type AnalysisScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Analysis'>;
@@ -34,20 +41,25 @@ export function AnalysisScreen() {
   const { captureId } = route.params || {};
 
   const queryClient = useQueryClient();
+  const { userId } = useAuth();
   const { data, loading, analyzing, error, timedOut, retryAnalysis } = useSwingAnalysisData(captureId);
   const { data: profile, refetch: refetchProfile } = useUserProfile();
   const { data: dailyPlan, refetch: refetchDailyPlan } = useDailyPlanQuery();
   const [xpAwardResult, setXpAwardResult] = useState<{ xp_awarded: number; new_total_xp: number; week_xp: number } | null>(null);
   const awardAttemptedRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [issueErrors, setIssueErrors] = useState<SwingErrorRow[]>([]);
 
-  // After diagnosis, curriculum is built by build_curriculum_queue; refetch daily plan so we have the first lesson
+  // After analysis data loads, invalidate all downstream caches so MyPlan,
+  // SmartReview, and HomeScreen reflect the newly assigned curriculum.
   useEffect(() => {
     if (captureId != null) {
       queryClient.invalidateQueries({ queryKey: ['dailyPlan'] });
+      queryClient.invalidateQueries({ queryKey: ['myPlan', userId] });
+      queryClient.invalidateQueries({ queryKey: ['smartReviewPlan'] });
       refetchDailyPlan();
     }
-  }, [captureId, queryClient, refetchDailyPlan]);
+  }, [captureId, queryClient, userId, refetchDailyPlan]);
 
   useEffect(() => {
     if (!data?.analysis || !data?.capture?.id) return;
@@ -65,12 +77,84 @@ export function AnalysisScreen() {
       .then((result) => {
         setXpAwardResult(result);
         refetchProfile();
+        queryClient.invalidateQueries({ queryKey: ['myPlan', userId] });
+        queryClient.invalidateQueries({ queryKey: ['smartReviewPlan'] });
       })
       .catch((err) => {
         console.warn('[Analysis] award_xp failed:', err);
         awardAttemptedRef.current = false;
       });
-  }, [data?.capture?.id, data?.analysis?.overall_confidence, refetchProfile]);
+  }, [data?.capture?.id, data?.analysis?.overall_confidence, refetchProfile, queryClient, userId]);
+
+  // Fetch swing_error rows for top issues to power issue-to-fix cards
+  useEffect(() => {
+    if (!data?.analysis) return;
+    const issueScoresRaw = data.analysis.issue_scores as Record<string, number> | null;
+    if (!issueScoresRaw) return;
+
+    const topSlugs = Object.entries(issueScoresRaw)
+      .filter(([, v]) => Number(v) >= 0.5)
+      .sort(([, a], [, b]) => Number(b) - Number(a))
+      .slice(0, 3)
+      .map(([slug]) => slug);
+
+    if (topSlugs.length === 0) return;
+
+    supabase
+      .from('swing_error')
+      .select('*')
+      .in('slug', topSlugs)
+      .then(({ data: rows }) => {
+        if (rows) setIssueErrors(rows as SwingErrorRow[]);
+      });
+  }, [data?.analysis]);
+
+  // ── Derived data — all hooks must be above the early returns ──
+
+  // Parse scores from data (null-safe; produces empty objects while loading)
+  const analysisRow = data?.analysis ?? null;
+  const mechanicScoresRaw = (analysisRow?.mechanic_scores ?? {}) as Record<string, number>;
+  const issueScoresRaw = (analysisRow?.issue_scores ?? {}) as Record<string, number>;
+  const rawConf = Number(analysisRow?.overall_confidence ?? 0.85);
+  const confidence = Math.round(Math.max(0, Math.min(1, rawConf)) * 100);
+  const mechanicScores = Object.fromEntries(
+    Object.entries(mechanicScoresRaw).map(([k, v]) => {
+      const n = Number(v ?? 0);
+      const pct = n <= 1 ? n * 100 : n;
+      return [k, Math.round(Math.max(0, Math.min(100, pct)))];
+    })
+  ) as Record<string, number>;
+  const issueScores: Record<string, number> = {};
+  for (const [k, v] of Object.entries(issueScoresRaw)) {
+    const num = typeof v === 'number' ? v : (v as any)?.severity ? 0.8 : Number(v);
+    issueScores[k] = num <= 1 ? num : num / 100;
+  }
+
+  // Build dynamic metrics — must be a hook, so keep it unconditional before early returns
+  const metrics = useMemo(() => {
+    const rows = Object.entries(mechanicScores)
+      .filter(([, score]) => typeof score === 'number')
+      .sort(([, a], [, b]) => a - b)
+      .map(([key, score]) => ({
+        label: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+        value: `${score}%`,
+        note: score >= 80 ? 'Good' : score >= 60 ? 'Fair' : 'Needs Work',
+        percentage: score,
+        status: score >= 70 ? 'good' : 'warning',
+        centered: false,
+      }));
+    rows.push({
+      label: 'Overall Form',
+      value: `${confidence}%`,
+      note: confidence >= 80 ? 'Strong' : 'Needs Improvement',
+      percentage: confidence,
+      status: confidence >= 70 ? 'good' : 'warning',
+      centered: false,
+    });
+    return rows;
+  }, [mechanicScores, confidence]);
+
+  // ── Early returns (no hooks below this line) ──
 
   if (loading || analyzing) {
     return (
@@ -112,24 +196,6 @@ export function AnalysisScreen() {
 
   const { analysis, capture } = data;
 
-  // Parse scores (DB stores 0..1; convert to 0..100 for display, clamp to avoid bad data)
-  const issueScoresRaw = analysis.issue_scores as Record<string, number>;
-  const mechanicScoresRaw = analysis.mechanic_scores as Record<string, number>;
-  const rawConf = Number(analysis.overall_confidence ?? 0.85);
-  const confidence = Math.round(Math.max(0, Math.min(1, rawConf)) * 100);
-  const mechanicScores = Object.fromEntries(
-    Object.entries(mechanicScoresRaw ?? {}).map(([k, v]) => {
-      const n = Number(v ?? 0);
-      const pct = n <= 1 ? n * 100 : n;
-      return [k, Math.round(Math.max(0, Math.min(100, pct)))];
-    })
-  ) as Record<string, number>;
-  const issueScores: Record<string, number> = {};
-  for (const [k, v] of Object.entries(issueScoresRaw || {})) {
-    const num = typeof v === 'number' ? v : (v as any)?.severity ? 0.8 : Number(v);
-    issueScores[k] = num <= 1 ? num : num / 100;
-  }
-
   // Calculate rating based on confidence
   const getRating = (score: number) => {
     if (score >= 90) return 'Excellent';
@@ -155,31 +221,6 @@ export function AnalysisScreen() {
     .map(([key]) => key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()))
     .slice(0, 3);
 
-  // Metrics
-  const metrics = [
-    {
-      label: 'Posture Quality',
-      value: `${mechanicScores.posture || 0}%`,
-      percentage: mechanicScores.posture || 0,
-      status: (mechanicScores.posture || 0) >= 70 ? 'good' : 'warning',
-    },
-    {
-      label: 'Hip Rotation',
-      value: `${mechanicScores.hip_rotation || 0}%`,
-      note: (mechanicScores.hip_rotation || 0) >= 80 ? 'Optimal' : 'Needs Work',
-      percentage: mechanicScores.hip_rotation || 0,
-      status: (mechanicScores.hip_rotation || 0) >= 70 ? 'good' : 'warning',
-    },
-    {
-      label: 'Overall Form',
-      value: `${confidence}%`,
-      note: confidence >= 80 ? 'Strong' : 'Needs Improvement',
-      percentage: confidence,
-      status: confidence >= 70 ? 'good' : 'warning',
-      centered: false,
-    },
-  ];
-
   const coachTip =
     (analysis.raw_json as { coach_notes?: string } | null)?.coach_notes ||
     'Keep practicing! Focus on the areas highlighted above.';
@@ -197,16 +238,25 @@ export function AnalysisScreen() {
     setIsPlaying(!isPlaying);
   };
 
-  const handleStartDrill = () => {
-    // Navigate to drill (placeholder)
-    console.log('Start drill');
+  // Prefer recommended IDs from analysis; fall back to daily plan active lesson.
+  const recommendedLessonId: number | null =
+    (analysis.recommended_lesson_ids as number[] | null)?.[0] ??
+    dailyPlan?.active_lesson?.id ??
+    null;
+  const recommendedDrillId: number | null =
+    (analysis.recommended_drill_ids as number[] | null)?.[0] ?? null;
+
+  const handleStartRecommendedLesson = () => {
+    if (recommendedLessonId != null) {
+      navigation.navigate('DailyLesson', { lessonId: recommendedLessonId, fromSmartReview: false });
+    } else {
+      navigation.navigate('Capture');
+    }
   };
 
-  const activeLesson = dailyPlan?.active_lesson ?? null;
-
-  const handleNextSwing = () => {
-    if (activeLesson?.id != null) {
-      navigation.navigate('DailyLesson', { lessonId: activeLesson.id, fromSmartReview: false });
+  const handleStartDrill = () => {
+    if (recommendedDrillId != null) {
+      navigation.navigate('DrillDetails', { drillId: recommendedDrillId });
     } else {
       navigation.navigate('Capture');
     }
@@ -224,7 +274,9 @@ export function AnalysisScreen() {
           <Text style={styles.iconButtonText}>←</Text>
         </TouchableOpacity>
         <View style={styles.titleArea}>
-          <Text style={styles.club}>IRONS</Text>
+          {capture.camera_angle ? (
+            <Text style={styles.club}>{capture.camera_angle.toUpperCase()}</Text>
+          ) : null}
           <Text style={styles.date}>
             {new Date(capture.created_at).toLocaleString('en-US', {
               month: 'short',
@@ -307,18 +359,41 @@ export function AnalysisScreen() {
           </View>
         </View>
 
-        {/* Swing capture (key frames only; no video URL stored) */}
-        <View style={styles.videoCard}>
-          <View style={styles.videoPlaceholder}>
-            <Text style={styles.videoPlaceholderText}>Swing capture</Text>
-            <Text style={styles.videoPlaceholderSubtext}>
-              {capture.camera_angle ? `${capture.camera_angle} view` : 'Key frames analyzed'}
-            </Text>
+        {/* Swing Phase Cards — show overlay frames from AI analysis */}
+        {data.frames.length > 0 ? (
+          <View style={styles.phaseCardsSection}>
+            <Text style={styles.sectionTitle}>Swing Phases</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.phaseCardsRow}>
+              {data.frames.map((frame) => (
+                <View key={frame.id} style={styles.phaseCard}>
+                  <Image
+                    source={{ uri: frame.overlaySignedUrl ?? frame.frameSignedUrl ?? undefined }}
+                    style={styles.phaseCardImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.phaseCardLabel}>
+                    <Text style={styles.phaseCardLabelText}>
+                      {frame.phase.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
           </View>
-          <View style={styles.videoBadge}>
-            <Text style={styles.videoBadgeText}>AI ANALYSIS</Text>
+        ) : (
+          <View style={styles.videoCard}>
+            <View style={styles.videoPlaceholder}>
+              <Text style={styles.videoPlaceholderText}>Swing capture</Text>
+              <Text style={styles.videoPlaceholderSubtext}>
+                {capture.camera_angle ? `${capture.camera_angle} view` : 'Key frames analyzed'}
+              </Text>
+            </View>
+            <View style={styles.videoBadge}>
+              <Text style={styles.videoBadgeText}>AI ANALYSIS</Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* The Good */}
         {goodPoints.length > 0 && (
@@ -373,6 +448,46 @@ export function AnalysisScreen() {
           </View>
         )}
 
+        {/* Issue-to-Fix Cards */}
+        {issueErrors.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>What to Fix</Text>
+            {issueErrors.map((err) => (
+              <View key={err.id} style={styles.issueCard}>
+                <Text style={styles.issueCardTitle}>{err.name}</Text>
+                {err.description ? (
+                  <View style={styles.issueRow}>
+                    <Text style={styles.issueRowLabel}>What we saw</Text>
+                    <Text style={styles.issueRowValue}>{err.description}</Text>
+                  </View>
+                ) : null}
+                {err.typical_miss ? (
+                  <View style={styles.issueRow}>
+                    <Text style={styles.issueRowLabel}>Ball-flight effect</Text>
+                    <Text style={styles.issueRowValue}>{err.typical_miss}</Text>
+                  </View>
+                ) : null}
+                {err.fix ? (
+                  <View style={[styles.issueRow, styles.issueRowFix]}>
+                    <Text style={styles.issueRowLabel}>What to fix first</Text>
+                    <Text style={[styles.issueRowValue, styles.issueRowFixText]}>{err.fix}</Text>
+                  </View>
+                ) : null}
+                {(recommendedDrillId != null || recommendedLessonId != null) && (
+                  <TouchableOpacity
+                    style={styles.issueFixCta}
+                    onPress={recommendedDrillId != null ? handleStartDrill : handleStartRecommendedLesson}
+                  >
+                    <Text style={styles.issueFixCtaText}>
+                      {recommendedDrillId != null ? `Practice Drill +${XP_BASE.drill} XP` : `Start Lesson +${XP_BASE.lesson} XP`}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Metrics Breakdown */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Metrics Breakdown</Text>
@@ -419,21 +534,52 @@ export function AnalysisScreen() {
         </View>
 
         {/* Spacer for bottom bar */}
-        <View style={{ height: 96 }} />
+        <View style={{ height: 130 }} />
       </ScrollView>
 
       {/* Bottom Action Bar */}
       <View style={styles.bottomBar}>
-        <Button
-          variant="secondary"
-          size="large"
-          fullWidth
-          onPress={handleNextSwing}
-          icon={activeLesson ? '▶' : '→'}
-          iconPosition="right"
+        {recommendedLessonId != null ? (
+          <Button
+            variant="primary"
+            size="large"
+            fullWidth
+            onPress={handleStartRecommendedLesson}
+            icon="▶"
+            iconPosition="right"
+          >
+            Start Recommended Lesson
+          </Button>
+        ) : recommendedDrillId != null ? (
+          <Button
+            variant="primary"
+            size="large"
+            fullWidth
+            onPress={handleStartDrill}
+            icon="▶"
+            iconPosition="right"
+          >
+            Practice Recommended Drill
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            size="large"
+            fullWidth
+            onPress={() => navigation.navigate('Capture')}
+            icon="→"
+            iconPosition="right"
+          >
+            Next Swing
+          </Button>
+        )}
+        <TouchableOpacity
+          style={styles.homeLink}
+          onPress={() => navigation.navigate('Home')}
+          activeOpacity={0.7}
         >
-          {activeLesson ? "Start your first lesson" : "Next Swing"}
-        </Button>
+          <Text style={styles.homeLinkText}>Return to Home</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -873,5 +1019,110 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 32,
     backgroundColor: 'rgba(16, 34, 22, 0.95)',
+    gap: 10,
+  },
+  homeLink: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  homeLinkText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+
+  // Swing phase cards
+  phaseCardsSection: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  phaseCardsRow: {
+    gap: 10,
+    paddingRight: 16,
+  },
+  phaseCard: {
+    width: 120,
+    height: 160,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: colors.card,
+  },
+  phaseCardImage: {
+    width: '100%',
+    height: 130,
+  },
+  phaseCardLabel: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+    paddingHorizontal: 4,
+  },
+  phaseCardLabelText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+
+  // Issue-to-fix cards
+  issueCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+  },
+  issueCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  issueRow: {
+    marginBottom: 6,
+  },
+  issueRowLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  issueRowValue: {
+    fontSize: 13,
+    color: colors.textPrimary,
+    lineHeight: 18,
+  },
+  issueRowFix: {
+    backgroundColor: 'rgba(124, 179, 66, 0.08)',
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  issueRowFixText: {
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  issueFixCta: {
+    marginTop: 10,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  issueFixCtaText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
   },
 });

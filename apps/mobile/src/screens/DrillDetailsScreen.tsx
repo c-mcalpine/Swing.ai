@@ -179,7 +179,7 @@ export function DrillDetailsScreen() {
       const score = Math.min(1, reps / goalReps); // 0-1 score based on goal completion
       const durationMin = Math.ceil((reps * 2) / 60); // Estimate 2 mins per rep
 
-      await submitReview({
+      const result = await submitReview({
         item_type: 'drill',
         item_id: drillId,
         score,
@@ -188,7 +188,8 @@ export function DrillDetailsScreen() {
         source: fromSmartReview ? 'review' : 'daily',
       });
 
-      Alert.alert('Great work!', 'Your practice has been recorded.', [
+      const xpLine = result?.xp_awarded ? `\n+${result.xp_awarded} XP earned!` : '';
+      Alert.alert('Great work!', `Practice recorded.${xpLine}`, [
         {
           text: 'Continue',
           onPress: () => navigation.goBack(),

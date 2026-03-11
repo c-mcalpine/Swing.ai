@@ -14,6 +14,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button, IconButton, VideoPlayer } from '@/components';
 import { useSwingTaxonomy } from '@/hooks/useTaxonomy';
 import { useSubmitReviewResult } from '@/hooks/useSmartReview';
+import { useStreak } from '@/hooks/useProfile';
+import { useAuth } from '@/lib/AuthContext';
+import { XP_BASE } from '@/lib/xpConstants';
 import { colors, spacing } from '@/styles/tokens';
 import type { AppStackParamList } from '@/navigation/AppStack';
 
@@ -36,19 +39,22 @@ export function DailyLessonScreen() {
   const reviewItem = (route.params as any)?.reviewItem;
 
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const { userId } = useAuth();
+  const { streak } = useStreak(userId);
   const { data: taxonomy, loading, error } = useSwingTaxonomy();
   const { submit: submitReview, loading: submitting } = useSubmitReviewResult();
 
   // Track which drill checkpoints have been completed (by drill id)
   const [completedDrillIds, setCompletedDrillIds] = useState<Set<number>>(new Set());
 
-  // Get the lesson from taxonomy (use first lesson if no ID provided)
+  // Get the lesson from taxonomy by explicit lessonId only — no first-lesson fallback.
+  // If lessonId is missing or not found, lesson will be null and an error state renders.
   const lesson = useMemo(() => {
     if (!taxonomy?.lessons) return null;
     if (lessonId) {
-      return taxonomy.lessons.find((l) => l.id === lessonId) || taxonomy.lessons[0];
+      return taxonomy.lessons.find((l) => l.id === lessonId) ?? null;
     }
-    return taxonomy.lessons[0];
+    return null;
   }, [taxonomy, lessonId]);
 
   // Get lesson steps for this lesson
@@ -132,14 +138,12 @@ export function DailyLessonScreen() {
   };
 
   const lessonData = {
-    day: 12, // This would come from user progress
     title: lesson?.title || 'Loading...',
-    videoThumb:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAjcqPH9yZ54w0zNRaW1cNXdeWwwSpz_pQWqviqpOyZW7cMNwlHwGfhBv17S7uzSjMFN5jmYe-1V1CXbjofMvhm4XDwwKw7Rumy6BBaslEo4CjJuXYUKo2eBORcJ85SyCAewgYPegfXH5ArPq3TEtVD0ZtUU-QlvYz3x_X1gpmv6pQzGb8wjuXSv0dnboXylVyBT9F1mtesgjtK5nknw_3-36_8iePzLeDH9h1kM8zd0qv0go26JBKABgacpliLhnxT2WeouE72DYs',
-    duration: '02:14',
-    tags: lesson?.tags?.split(',') || ['Driver', 'Intermediate', '5 min'],
-    streak: 12,
-    xpReward: 50,
+    videoThumb: null as string | null,
+    duration: lesson?.duration_min != null ? `${lesson.duration_min} min` : null,
+    tags: lesson?.tags?.split(',') || [],
+    streak,
+    xpReward: XP_BASE.lesson,
   };
 
   const handleComplete = async () => {
@@ -224,6 +228,24 @@ export function DailyLessonScreen() {
     }
   };
 
+  // Guard: if taxonomy loaded but lesson not found, show an explicit error.
+  if (!loading && taxonomy && !lesson) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '600', marginBottom: 8 }}>
+          Lesson not found
+        </Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 14, textAlign: 'center', marginBottom: 24, paddingHorizontal: 24 }}>
+          We couldn't find this lesson. Please go back and try again from your plan.
+        </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')}
+          style={{ backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}>
+          <Text style={{ color: '#fff', fontWeight: '700' }}>Back to Home</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Sticky Header */}
@@ -233,7 +255,6 @@ export function DailyLessonScreen() {
             <IconButton icon="←" onPress={() => navigation.goBack()} />
 
             <View style={styles.headerTitle}>
-              <Text style={styles.dayLabel}>DAY {lessonData.day}</Text>
               <Text style={styles.title}>{lessonData.title}</Text>
             </View>
 
@@ -261,8 +282,8 @@ export function DailyLessonScreen() {
         {/* Video Player */}
         <View style={styles.videoSection}>
           <VideoPlayer
-            thumbnailUrl={lessonData.videoThumb}
-            duration={lessonData.duration}
+            thumbnailUrl={lessonData.videoThumb ?? 'https://via.placeholder.com/400x200'}
+            duration={lessonData.duration ?? undefined}
           />
 
           {/* Tags */}
@@ -389,8 +410,11 @@ export function DailyLessonScreen() {
           <View style={styles.streakInfo}>
             <Text style={styles.fireIcon}>🔥</Text>
             <Text style={styles.streakText}>
-              Finish to keep your{' '}
-              <Text style={styles.streakHighlight}>{lessonData.streak}-day streak!</Text>
+              {lessonData.streak > 0 ? (
+                <>Finish to keep your{' '}<Text style={styles.streakHighlight}>{lessonData.streak}-day streak!</Text></>
+              ) : (
+                'Complete this lesson to start your streak!'
+              )}
             </Text>
           </View>
 

@@ -400,31 +400,39 @@ Deno.serve(async (req) => {
         .eq("issue_slug", issueSlug);
     }
 
-    // 6) Deterministic XP award (idempotent)
-    // Example rule: review completion XP = 15 + bonus for high score
-    const xp = score >= 0.9 ? 25 : score >= 0.75 ? 20 : score >= 0.6 ? 15 : 10;
-
+    // 6) Deterministic XP award via canonical award_xp RPC (idempotent).
+    // award_xp resolves item-type base XP (lesson=50, drill=20, cue=10),
+    // applies quality/novelty/streak/diminishing multipliers, adds duration bonus,
+    // and updates profiles.xp, weekly_xp_user, and user_streak atomically.
     const day = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
     const idempotencyKey =
       body.client_event_id
         ? `review:${userId}:${body.client_event_id}`
         : `review:${userId}:${itemType}:${itemId}:${completion.id}:${day}`;
 
-    await supabase.from("xp_event").insert({
-      user_id: userId,
-      source_type: "review",
-      source_id: completion.id,
-      reason: `Smart Review (${itemType})`,
-      xp,
-      occurred_at: new Date().toISOString(),
-      idempotency_key: idempotencyKey,
+    const { data: xpResult, error: xpError } = await supabase.rpc("award_xp", {
+      p_source_type: "smart_review",
+      p_source_id: completion.id,
+      p_reason: `Smart Review (${itemType})`,
+      p_meta: {
+        item_type: itemType,
+        score: body.score,
+        duration_min: body.duration_min ?? null,
+      },
+      p_idempotency_key: idempotencyKey,
     });
+
+    if (xpError) {
+      console.error("[submit-review-result] award_xp RPC error:", xpError);
+    }
+
+    const xpAwarded: number = xpResult?.[0]?.xp_awarded ?? 0;
 
     // 7) Optional: add notification feed entry
     await supabase.from("user_review_event").insert({
       user_id: userId,
       title: "Smart Review complete",
-      description: `+${xp} XP`,
+      description: `+${xpAwarded} XP`,
       icon: "check_circle",
       color: "green",
       occurred_at: new Date().toISOString(),
@@ -437,7 +445,7 @@ Deno.serve(async (req) => {
         ok: true,
         completion_id: completion.id,
         next_schedule: next,
-        xp_awarded: xp,
+        xp_awarded: xpAwarded,
       }),
       { headers: { "Content-Type": "application/json" } },
     );

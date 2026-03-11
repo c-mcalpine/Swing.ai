@@ -4,7 +4,7 @@ import {
   getCurrentUserProfile,
 } from '@/api/profile';
 import type { Database } from '@/lib/supabaseTypes';
-import { auth } from '@/lib/supabase';
+import { auth, supabase } from '@/lib/supabase';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -76,21 +76,47 @@ export function useUserProfile(userId?: string | null): UseProfileReturn {
 }
 
 /**
- * React hook to calculate and fetch user's practice streak.
- * For now, returns 0 (placeholder - streak calculation needs implementation)
- * 
- * @param userId - The user ID to fetch (null to skip loading)
+ * React hook to read the user's current practice streak from user_streak table.
+ * Streak is maintained server-side by the award_xp RPC on every XP-earning action.
+ *
+ * @param userId - The user ID to fetch (null/undefined to skip)
  * @returns {UseStreakReturn}
  */
 export function useStreak(userId?: string | null): UseStreakReturn {
-  // TODO: Implement streak calculation based on practice_session data
-  const [streak] = useState<number>(0);
-  const [loading] = useState<boolean>(false);
-  const [error] = useState<Error | null>(null);
+  const [streak, setStreak] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(!!userId);
+  const [error, setError] = useState<Error | null>(null);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
-  const refetch = () => {
-    // TODO: Implement refetch
-  };
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      setStreak(0);
+      return;
+    }
+
+    let isMounted = true;
+    setLoading(true);
+
+    supabase
+      .from('user_streak')
+      .select('current_streak')
+      .eq('user_id', userId)
+      .maybeSingle()
+      .then(({ data, error: err }) => {
+        if (!isMounted) return;
+        if (err) {
+          setError(new Error(err.message));
+        } else {
+          setStreak(data?.current_streak ?? 0);
+        }
+        setLoading(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [userId, refetchTrigger]);
+
+  const refetch = () => setRefetchTrigger(prev => prev + 1);
 
   return { streak, loading, error, refetch };
 }

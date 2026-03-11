@@ -1,4 +1,24 @@
--- database_records/database_functions/award_xp.sql
+-- Extend award_xp to support item-type-aware base XP for smart_review source.
+-- lesson=50, drill=20, cue=10 (replaces flat 20).
+-- Also adds a duration bonus: +1 XP per minute above the item's minimum duration,
+-- capped at 2× base XP. This is computed as an additive bonus AFTER the multipliers.
+
+create or replace function public.award_xp(
+  p_source_type text,
+  p_source_id bigint,
+  p_reason text default null,
+  p_meta jsonb default '{}'::jsonb,
+  p_idempotency_key text default null
+)
+returns table (
+  xp_awarded integer,
+  new_total_xp integer,
+  week_xp bigint
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
 declare
   v_user_id uuid := auth.uid();
   v_today date := (now() at time zone 'utc')::date;
@@ -99,17 +119,15 @@ begin
 
   -- 4) Quality multiplier (bounded and simple)
   if p_source_type = 'smart_review' then
-    -- Expect p_meta.score either 0-1 or 0-100; normalize if > 1
+    -- score-based quality: 0.9 + 0.5*score, capped to [0.9, 1.4]
     v_score := nullif((p_meta->>'score')::numeric, null);
     if v_score is not null and v_score > 1 then
       v_score := v_score / 100.0;
     end if;
-
-    -- quality = 0.9 + 0.5*score, capped to [0.9, 1.4]
     v_quality_mult := least(1.4, greatest(0.9, 0.9 + 0.5*coalesce(v_score, 0)));
 
   elsif p_source_type = 'drill' then
-    -- Use duration_min if provided; cap +30%
+    -- duration-based quality: cap +30%
     v_duration := nullif((p_meta->>'duration_min')::numeric, null);
     if v_duration is not null then
       v_quality_mult := 1.0 + least(0.3, (v_duration / 10.0) * 0.3);
@@ -118,7 +136,6 @@ begin
     end if;
 
   elsif p_source_type = 'swing_capture' then
-    -- Use confidence 0-1 and optional picked_takeaway boolean in meta
     v_score := nullif((p_meta->>'overall_confidence')::numeric, null);
     v_quality_mult := 1.0
       + least(0.15, 0.15*coalesce(v_score, 0))
@@ -126,7 +143,6 @@ begin
     v_quality_mult := least(1.25, v_quality_mult);
 
   elsif p_source_type = 'challenge' then
-    -- placement_percentile: 0 best ... 1 worst
     v_pct := nullif((p_meta->>'placement_percentile')::numeric, null);
     if v_pct is null then
       v_quality_mult := 1.0;
@@ -196,7 +212,7 @@ begin
   if v_last_active is null then
     v_streak := 1;
   elsif v_last_active = v_today then
-    -- no change
+    -- no change; already active today
     v_streak := v_streak;
   elsif v_last_active = (v_today - 1) then
     v_streak := v_streak + 1;
@@ -216,21 +232,36 @@ begin
   -- +1 XP per minute above item's minimum duration, capped at base XP (so max 2× base total)
   if p_source_type = 'smart_review' then
     v_duration := nullif((p_meta->>'duration_min')::numeric, null);
+
     if v_duration is not null then
+      -- Resolve item minimum duration
       if v_item_type = 'lesson' then
-        select coalesce(l.duration_min, 5) into v_item_min_duration
-        from public.lesson l where l.id = p_source_id;
+        select coalesce(l.duration_min, 5)
+          into v_item_min_duration
+        from public.lesson l
+        where l.id = p_source_id;
         v_item_min_duration := coalesce(v_item_min_duration, 5);
+
       elsif v_item_type = 'drill' then
-        select coalesce(d.min_duration_min, 3) into v_item_min_duration
-        from public.drill d where d.id = p_source_id;
+        select coalesce(d.min_duration_min, 3)
+          into v_item_min_duration
+        from public.drill d
+        where d.id = p_source_id;
         v_item_min_duration := coalesce(v_item_min_duration, 3);
+
       elsif v_item_type = 'cue' then
-        select coalesce(cc.duration_min, 3) into v_item_min_duration
-        from public.coaching_cue cc where cc.id = p_source_id;
+        select coalesce(cc.duration_min, 3)
+          into v_item_min_duration
+        from public.coaching_cue cc
+        where cc.id = p_source_id;
         v_item_min_duration := coalesce(v_item_min_duration, 3);
       end if;
-      v_duration_bonus := least(v_base_xp, greatest(0, floor(v_duration - v_item_min_duration)::integer));
+
+      -- +1 XP per extra minute, capped at base_xp additional XP
+      v_duration_bonus := least(
+        v_base_xp,
+        greatest(0, floor(v_duration - v_item_min_duration)::integer)
+      );
     end if;
   end if;
 
@@ -246,15 +277,16 @@ begin
   )
   values (
     v_user_id, p_source_type, p_source_id, p_reason, v_final_xp, now(),
-    p_idempotency_key, v_base_xp, v_quality_mult, v_novelty_mult, v_streak_mult, v_diminishing_mult, coalesce(p_meta, '{}'::jsonb)
+    p_idempotency_key, v_base_xp, v_quality_mult, v_novelty_mult, v_streak_mult, v_diminishing_mult,
+    coalesce(p_meta, '{}'::jsonb)
   );
 
   -- 11) Increment daily counters
   update public.user_daily_xp_activity
-  set drills_count = drills_count + case when p_source_type='drill' then 1 else 0 end,
-      reviews_count = reviews_count + case when p_source_type='smart_review' then 1 else 0 end,
-      captures_count = captures_count + case when p_source_type='swing_capture' then 1 else 0 end,
-      challenges_count = challenges_count + case when p_source_type='challenge' then 1 else 0 end,
+  set drills_count     = drills_count     + case when p_source_type='drill'         then 1 else 0 end,
+      reviews_count    = reviews_count    + case when p_source_type='smart_review'  then 1 else 0 end,
+      captures_count   = captures_count   + case when p_source_type='swing_capture' then 1 else 0 end,
+      challenges_count = challenges_count + case when p_source_type='challenge'     then 1 else 0 end,
       updated_at = now()
   where user_id = v_user_id and activity_day = v_today;
 
@@ -282,3 +314,7 @@ begin
   xp_awarded := v_final_xp;
   return next;
 end;
+$$;
+
+revoke all on function public.award_xp(text, bigint, text, jsonb, text) from public;
+grant execute on function public.award_xp(text, bigint, text, jsonb, text) to authenticated;

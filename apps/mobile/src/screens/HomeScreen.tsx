@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '@/lib/AuthContext';
 import { useStreak } from '@/hooks/useProfile';
 import { useProfileQuery, useDailyPlanQuery } from '@/hooks/useQueries';
+import { XP_BASE } from '@/lib/xpConstants';
 import { UserCircleIcon } from 'phosphor-react-native';
 import { BottomNav, useBottomNavPadding } from '@/components/BottomNav';
 import { colors, spacing } from '@/styles/tokens';
@@ -75,7 +76,7 @@ export function HomeScreen() {
         description: activeLesson.summary ?? 'Complete this lesson to improve your swing',
         duration: '15 mins',
         location: 'Any Location',
-        xp: 50,
+        xp: XP_BASE.lesson,
         image: 'https://via.placeholder.com/400x200',
       }
     : null;
@@ -88,7 +89,7 @@ export function HomeScreen() {
         title: d.name,
         description: d.reason ?? 'Practice drill',
         duration: '5m',
-        xp: 10,
+        xp: XP_BASE.drill,
         image: 'https://via.placeholder.com/300x200',
       })) ?? [];
 
